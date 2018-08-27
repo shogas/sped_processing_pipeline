@@ -16,61 +16,33 @@ matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 
 
-def linear_blend(source_a, source_b, sample_width, sample_height):
-    """ Linear blend diffraction pattern sample
-
-        Blend of two sources in width direction, where the first third is
-        entirely source a, the last third entirely source b and the middle is a
-        linear blend. All samples in height direction are equal.
-
-        source_a: Array of values representing one source
-        source_b: Array of values representing the other source
-        sample_width:  Number of samples wide
-        sample_height: Number of samples high
-
-        Result: Generator yielding the specified values, iterating along width,
-        then height.
-    """
-
-    one_third = sample_width // 3
-    for y in range(sample_height):
-        for i in range(one_third):
-            yield source_a
-        for i in range(1, one_third + 1):
-            t = i / one_third
-            yield (1-t)*source_a + t*source_b
-        for i in range(sample_width - 2*one_third):
-            yield source_b
-
-
-def run_noiseless(parameters, factorizer):
+def generate_test_linear_noiseless(parameters):
     source_a = matplotimg.imread(parameters['source_a_file'])[:, :, 0]
     source_b = matplotimg.imread(parameters['source_b_file'])[:, :, 0]
-    sample_width = int(parameters['sample_count_width'])
-    sample_height = int(parameters['sample_count_height'])
-    pattern_width, pattern_height = source_a.shape
-    diffraction_patterns = linear_blend(
-            source_a, source_b,
-            sample_width, sample_height)
-    return factorizer(diffraction_patterns, sample_width, sample_height, pattern_width, pattern_height)
+    factors = np.stack((source_a, source_b))
+
+    width = int(parameters['sample_count_width'])
+    height = int(parameters['sample_count_height'])
+    loadings = np.empty((2, height, width))
+    one_third = width // 3
+    for y in range(height):
+        for x in range(one_third):
+            loadings[0, y, x] = 1.0
+            loadings[1, y, x] = 0.0
+        for x in range(one_third, 2*one_third):
+            loadings[0, y, x] = 1 - (x - one_third) / one_third
+            loadings[1, y, x] = 1 - loadings[0, y, x]
+        for x in range(2*one_third, width):
+            loadings[0, y, x] = 0.0
+            loadings[1, y, x] = 1.0
+
+    return factors, loadings
 
 
 def factorizer_debug(diffraction_patterns):
-    index = 4
-    for i in range(index):
-        next(diffraction_patterns)
-    test_pattern = next(diffraction_patterns)
-    print(test_pattern.shape)
-    plt.imshow(test_pattern, cmap='gray')
+    dps = pyxem.ElectronDiffraction(diffraction_patterns)
+    dps.plot()
     plt.show()
-
-
-def pattern_generator_to_signal(diffraction_patterns, sample_width, sample_height, pattern_width, pattern_height):
-    dp_array = np.empty((sample_width * sample_height, pattern_width, pattern_height))
-    for i, dp in enumerate(diffraction_patterns):
-        dp_array[i] = dp
-    dp_array = dp_array.reshape((sample_height, sample_width, pattern_width, pattern_height))
-    return pyxem.ElectronDiffraction(dp_array)
 
 
 def decompose_nmf(diffraction_pattern, factor_count):
@@ -80,8 +52,9 @@ def decompose_nmf(diffraction_pattern, factor_count):
             output_dimension=factor_count)
 
 
-def factorizer_nmf(diffraction_patterns, sample_width, sample_height, pattern_width, pattern_height):
-    dps = pattern_generator_to_signal(diffraction_patterns, sample_width, sample_height, pattern_width, pattern_height)
+def factorizer_nmf(diffraction_patterns):
+    dps = pyxem.ElectronDiffraction(diffraction_patterns)
+
     # dps.decomposition(True, algorithm='svd')
     # dps.plot_explained_variance_ratio()
     # TODO(simonhog): Automate getting number of factors
@@ -107,13 +80,14 @@ def cepstrum(z):
     return z
 
 
-def factorizer_cepstrum_nmf(diffraction_patterns, sample_width, sample_height, pattern_width, pattern_height):
-    dps = pattern_generator_to_signal(diffraction_patterns, sample_width, sample_height, pattern_width, pattern_height)
-    dps.map(cepstrum, inplace=True)
+def factorizer_cepstrum_nmf(diffraction_patterns):
+    dps = pyxem.ElectronDiffraction(diffraction_patterns)
+    dps.map(cepstrum, inplace=True, show_progressbar=False)
     factor_count = 2
     decompose_nmf(dps, factor_count)
     factors = dps.get_decomposition_factors().data
     loadings = dps.get_decomposition_loadings().data
+    # TODO(simonhog): Return factors from highest index with highest loading to get real-space values
     return factors, loadings
 
 
@@ -125,32 +99,43 @@ def save_decomposition(output_dir, method_name, factors, loadings):
 
 
 def main(parameter_file):
-    run_parameters = parameters_parse(parameter_file)
+    parameters = parameters_parse(parameter_file)
 
-    output_dir = run_parameters['output_dir'] if 'output_dir' in run_parameters else ''
-    output_dir = os.path.join(output_dir, 'run_{}_{}'.format(run_parameters['shortname'], run_parameters['__date_string']))
+    output_dir = parameters['output_dir'] if 'output_dir' in parameters else ''
+    output_dir = os.path.join(output_dir, 'run_{}_{}'.format(parameters['shortname'], parameters['__date_string']))
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
     methods = {
+        # 'debug': factorizer_debug,
         'nmf': factorizer_nmf,
         'cepstrum_nmf': factorizer_cepstrum_nmf
     }
+
+    ground_truth_factors, ground_truth_loadings = generate_test_linear_noiseless(parameters)
+
+    # TODO(simonhog): numpy probably has a way of doing this without the reshape
+    factor_count, pattern_width, pattern_height = ground_truth_factors.shape
+    factor_count, sample_width, sample_height = ground_truth_loadings.shape
+    factors = ground_truth_factors.reshape((factor_count, -1))
+    loadings = ground_truth_loadings.reshape((factor_count, -1))
+    diffraction_patterns = np.matmul(loadings.T, factors)
+    diffraction_patterns = diffraction_patterns.reshape((sample_width, sample_height, pattern_width, pattern_height))
 
     for name, factorizer in methods.items():
         print('Running {}'.format(name))
         start_time = time.perf_counter()
 
-        # TODO(simonhog): Check cost of generating. Better to cache, possibly save to disk and read chunked
-        factors, loadings = run_noiseless(run_parameters, factorizer)
+        factors, loadings = factorizer(diffraction_patterns.copy())
 
         end_time = time.perf_counter()
         elapsed_time = end_time - start_time
         print('    Elapsed: {}'.format(elapsed_time))
-        run_parameters['__elapsed_time_{}'.format(name)] = elapsed_time
+        parameters['__elapsed_time_{}'.format(name)] = elapsed_time
         save_decomposition(output_dir, name, factors, loadings)
 
-    parameters_save(run_parameters, output_dir)
+    save_decomposition(output_dir, 'ground_truth', ground_truth_factors, ground_truth_loadings)
+    parameters_save(parameters, output_dir)
 
 
 if __name__ == '__main__':
