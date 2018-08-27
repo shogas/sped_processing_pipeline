@@ -2,21 +2,21 @@ from datetime import datetime
 import os
 import subprocess
 
-def getCommandlineOutput(command):
+def get_commandline_output(command):
     p = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
     (stdout, stderr) = p.communicate()
     return stdout
 
-def gitGetHashCurrentRepo():
+def git_current_commit_hash():
     return 'tempfortesting'
-    # return getCommandlineOutput('git rev-parse HEAD').strip()
+    # return get_commandline_output('git rev-parse HEAD').strip()
 
-def gitUncommittedChanges():
+def git_uncommited_changes():
     return False
-    # res = getCommandlineOutput('git diff --name-only')
+    # res = get_commandline_output('git diff --name-only')
     # return len(res) > 0
 
-def parseParameters(filename):
+def parameters_parse(filename):
     # TODO(simonhog): Error handling
     with open(filename, 'r') as file:
         lines = file.read().splitlines()
@@ -31,14 +31,14 @@ def parseParameters(filename):
     parameters['__date'] = now.isoformat() # TODO(simonhog): Ensure readable, add timezone. pytz library?
     parameters['__date_string'] = '{0:%Y}{0:%m}{0:%d}_{0:%H}_{0:%M}_{0:%S}_{0:%f}'.format(now) # TODO(simonhog): Ensure readable, add timezone. pytz library?
     parameters['__parameter_file'] = os.path.abspath(filename)
-    parameters['__code_git_hash'] = gitGetHashCurrentRepo()
+    parameters['__code_git_hash'] = git_current_commit_hash()
     if 'shortname' not in parameters:
         parameters['shortname'] = 'unnamed'
-    if gitUncommittedChanges():
+    if git_uncommited_changes():
         print("[WARN]: Uncommitted changes in git repository")
     return parameters
 
-def saveParameters(parameters, output_directory):
+def parameters_save(parameters, output_directory):
     out_filename = os.path.join(
             output_directory,
             'run_metadata_{}_{}'.format(parameters['shortname'], parameters['__date_string']))

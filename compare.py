@@ -9,9 +9,9 @@ matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 import matplotlib.image as matplotimg
 
-from parameters import parseParameters, saveParameters
+from parameters import parameters_parse, parameters_save
 
-def linearBlend(source_a, source_b, sample_width, sample_height):
+def linear_blend(source_a, source_b, sample_width, sample_height):
     """ Linear blend diffraction pattern sample
 
         Blend of two sources in width direction, where the first third is
@@ -37,18 +37,18 @@ def linearBlend(source_a, source_b, sample_width, sample_height):
         for i in range(sample_width - 2*one_third):
             yield source_b
 
-def noiselessRun(parameters, factorizer):
+def run_noiseless(parameters, factorizer):
     source_a = matplotimg.imread(parameters['source_a_file'])[:,:,0]
     source_b = matplotimg.imread(parameters['source_b_file'])[:,:,0]
     sample_width = int(parameters['sample_count_width'])
     sample_height = int(parameters['sample_count_height'])
     pattern_width, pattern_height = source_a.shape
-    diffraction_patterns = linearBlend(
+    diffraction_patterns = linear_blend(
             source_a, source_b,
             sample_width, sample_height)
     return factorizer(diffraction_patterns, sample_width, sample_height, pattern_width, pattern_height)
 
-def debugFactorizer(diffraction_patterns):
+def factorizer_debug(diffraction_patterns):
     index = 4
     for i in range(index):
         next(diffraction_patterns)
@@ -57,7 +57,7 @@ def debugFactorizer(diffraction_patterns):
     plt.imshow(test_pattern, cmap='gray')
     plt.show()
 
-def nmfFactorizer(diffraction_patterns, sample_width, sample_height, pattern_width, pattern_height):
+def factorizer_nmf(diffraction_patterns, sample_width, sample_height, pattern_width, pattern_height):
     dp_array = np.empty((sample_width * sample_height, pattern_width, pattern_height))
     for i, dp in enumerate(diffraction_patterns):
         dp_array[i] = dp
@@ -77,13 +77,13 @@ def nmfFactorizer(diffraction_patterns, sample_width, sample_height, pattern_wid
     # plt.show()
 
 def main(parameter_file):
-    run_parameters = parseParameters(parameter_file)
+    run_parameters = parameters_parse(parameter_file)
     start_time = time.perf_counter()
-    noiselessRun(run_parameters, nmfFactorizer)
+    run_noiseless(run_parameters, factorizer_nmf)
     end_time = time.perf_counter()
     print('Elapsed: {}'.format(end_time - start_time))
     run_parameters['__elapsed_time'] = end_time - start_time
-    saveParameters(run_parameters, '../../Data/Tmp')
+    parameters_save(run_parameters, '../../Data/Tmp')
 
 if __name__ == '__main__':
     main(sys.argv[1])
