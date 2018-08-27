@@ -6,11 +6,16 @@ import numpy as np
 import pyxem
 
 import matplotlib
-matplotlib.use('Qt5Agg')
-import matplotlib.pyplot as plt
 import matplotlib.image as matplotimg
 
 from parameters import parameters_parse, parameters_save
+
+# TODO(simonhog): Temporary while testing. Final script should not rely on
+# plotting
+
+matplotlib.use('Qt5Agg')
+import matplotlib.pyplot as plt
+
 
 def linear_blend(source_a, source_b, sample_width, sample_height):
     """ Linear blend diffraction pattern sample
@@ -38,9 +43,10 @@ def linear_blend(source_a, source_b, sample_width, sample_height):
         for i in range(sample_width - 2*one_third):
             yield source_b
 
+
 def run_noiseless(parameters, factorizer):
-    source_a = matplotimg.imread(parameters['source_a_file'])[:,:,0]
-    source_b = matplotimg.imread(parameters['source_b_file'])[:,:,0]
+    source_a = matplotimg.imread(parameters['source_a_file'])[:, :, 0]
+    source_b = matplotimg.imread(parameters['source_b_file'])[:, :, 0]
     sample_width = int(parameters['sample_count_width'])
     sample_height = int(parameters['sample_count_height'])
     pattern_width, pattern_height = source_a.shape
@@ -48,6 +54,7 @@ def run_noiseless(parameters, factorizer):
             source_a, source_b,
             sample_width, sample_height)
     return factorizer(diffraction_patterns, sample_width, sample_height, pattern_width, pattern_height)
+
 
 def factorizer_debug(diffraction_patterns):
     index = 4
@@ -57,6 +64,7 @@ def factorizer_debug(diffraction_patterns):
     print(test_pattern.shape)
     plt.imshow(test_pattern, cmap='gray')
     plt.show()
+
 
 def factorizer_nmf(diffraction_patterns, sample_width, sample_height, pattern_width, pattern_height):
     dp_array = np.empty((sample_width * sample_height, pattern_width, pattern_height))
@@ -80,6 +88,7 @@ def factorizer_nmf(diffraction_patterns, sample_width, sample_height, pattern_wi
     decomposition_loadings = dps.get_decomposition_loadings().data
     return decomposition_factors, decomposition_loadings
 
+
 def save_results(parameters, factors, loadings):
     output_dir = parameters['output_dir'] if 'output_dir' in parameters else ''
     output_dir = os.path.join(output_dir, 'run_{}_{}'.format(parameters['shortname'], parameters['__date_string']))
@@ -102,6 +111,7 @@ def main(parameter_file):
     print('Elapsed: {}'.format(end_time - start_time))
     run_parameters['__elapsed_time'] = end_time - start_time
     save_results(run_parameters, factors, loadings)
+
 
 if __name__ == '__main__':
     main(sys.argv[1])
