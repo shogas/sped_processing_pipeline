@@ -1,4 +1,5 @@
 import sys
+import time
 
 import numpy as np
 import matplotlib
@@ -45,7 +46,10 @@ def debugFactorizer(diffraction_patterns):
 
 def main(parameter_file):
     run_parameters = parseParameters(parameter_file)
+    start_time = time.perf_counter()
     noiselessRun(run_parameters, debugFactorizer)
+    end_time = time.perf_counter()
+    run_parameters['__elapsed_time'] = end_time - start_time
     saveParameters(run_parameters, '../../Data/Tmp')
 
 if __name__ == '__main__':
