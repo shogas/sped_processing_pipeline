@@ -39,9 +39,8 @@ def parameters_parse(filename):
     return parameters
 
 def parameters_save(parameters, output_directory):
-    out_filename = os.path.join(
-            output_directory,
-            'run_metadata_{}_{}'.format(parameters['shortname'], parameters['__date_string']))
+    out_filename = os.path.join(output_directory, 'metadata.txt')
+    del parameters['__date_string']
     with open(out_filename, 'w') as file:
         for key, value in parameters.items():
             file.write('{} = {}\n'.format(key, value))

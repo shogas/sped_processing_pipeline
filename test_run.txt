@@ -1,4 +1,6 @@
-sample_count_width = 90
+shortname = testing
+output_dir = ../../Data/Tmp
+sample_count_width = 30
 sample_count_height = 10
 source_a_file = ../../Data/generated_patterns/DiffractionPattern_gen_01.png
 source_b_file = ../../Data/generated_patterns/DiffractionPattern_gen_02.png

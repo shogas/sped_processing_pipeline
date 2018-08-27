@@ -1,3 +1,4 @@
+import os
 import sys
 import time
 
@@ -75,15 +76,32 @@ def factorizer_nmf(diffraction_patterns, sample_width, sample_height, pattern_wi
             )
     # dps.plot_decomposition_results()
     # plt.show()
+    decomposition_factors = dps.get_decomposition_factors().data
+    decomposition_loadings = dps.get_decomposition_loadings().data
+    return decomposition_factors, decomposition_loadings
+
+def save_results(parameters, factors, loadings):
+    output_dir = parameters['output_dir'] if 'output_dir' in parameters else ''
+    output_dir = os.path.join(output_dir, 'run_{}_{}'.format(parameters['shortname'], parameters['__date_string']))
+    os.makedirs(output_dir)
+
+    parameters_save(parameters, output_dir)
+    for i in range(factors.shape[0]):
+        matplotimg.imsave(os.path.join(output_dir, 'factors_{}.tiff').format(i), factors[i])
+    for i in range(loadings.shape[0]):
+        matplotimg.imsave(os.path.join(output_dir, 'loadings_{}.tiff').format(i), loadings[i])
+
 
 def main(parameter_file):
     run_parameters = parameters_parse(parameter_file)
     start_time = time.perf_counter()
-    run_noiseless(run_parameters, factorizer_nmf)
+
+    factors, loadings = run_noiseless(run_parameters, factorizer_nmf)
+
     end_time = time.perf_counter()
     print('Elapsed: {}'.format(end_time - start_time))
     run_parameters['__elapsed_time'] = end_time - start_time
-    parameters_save(run_parameters, '../../Data/Tmp')
+    save_results(run_parameters, factors, loadings)
 
 if __name__ == '__main__':
     main(sys.argv[1])
