@@ -1,7 +1,3 @@
-pushd ..\..\data
-
-del run_metadata_*
-python ..\code\compare\compare.py test_run.txt
-type run_metadata_*
-
-popd
+del ..\..\Data\Tmp\run_metadata_*
+python compare.py test_run.txt
+type ..\..\Data\Tmp\run_metadata_*
