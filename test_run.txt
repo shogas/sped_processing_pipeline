@@ -1,4 +1,4 @@
-sample_count_width = 9
-sample_count_height = 3
+sample_count_width = 90
+sample_count_height = 10
 source_a_file = ../../Data/generated_patterns/DiffractionPattern_gen_01.png
 source_b_file = ../../Data/generated_patterns/DiffractionPattern_gen_02.png

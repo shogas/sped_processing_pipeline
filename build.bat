@@ -1,3 +1,3 @@
-del ..\..\Data\Tmp\run_metadata_*
+del ..\..\Data\Tmp\run_metadata_* 2>NUL
 python compare.py test_run.txt
-type ..\..\Data\Tmp\run_metadata_*
+REM type ..\..\Data\Tmp\run_metadata_* 2>NUL
