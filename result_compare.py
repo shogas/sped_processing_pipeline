@@ -18,29 +18,25 @@ def load_decomposition_files(dir, method, file_type, factor_count):
     return np.stack(file_datas)
 
 
-def load_decomposition_data(dir, method, factor_count):
-    return np.stack(load_decomposition_files(dir, method, 'factors', factor_count)), np.stack(load_decomposition_files(dir, method, 'loadings', factor_count))
+def load_decompositions(dir, methods):
+    # TODO(simonhog): Different methods don't necessarily yield the same number of factors
+    factor_count = 2
+    decompositions = {}
+    for method in methods:
+        decompositions[method] = {}
+        decompositions[method]['factors']  = np.stack(load_decomposition_files(dir, method, 'factors', factor_count))
+        decompositions[method]['loadings'] = np.stack(load_decomposition_files(dir, method, 'loadings', factor_count))
+    return decompositions
 
 
 def run_comparisons(result_directory):
     parameters = parameters_parse(os.path.join(result_directory, 'metadata.txt'))
 
-    methods = {
-            'ground_truth': {},
-            'nmf': {},
-            'cepstrum_nmf': {}
-    }
-    # TODO(simonhog): Different methods don't necessarily yield the same number of factors
-    factor_count = 2
-    for method in methods.keys():
-        factors, loadings = load_decomposition_data(result_directory, method, factor_count)
-        print(method, factors.shape, loadings.shape)
-        methods[method]['factors'] = factors
-        methods[method]['loadings'] = loadings
+    methods = ['ground_truth', 'nmf', 'cepstrum_nmf']
+    decompositions = load_decompositions(result_directory, methods)
 
-    ground_truth = methods['ground_truth']
-    del methods['ground_truth']
-
+    ground_truth = decompositions['ground_truth']
+    del decompositions['ground_truth']
 
 
 if __name__ == '__main__':
