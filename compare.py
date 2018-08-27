@@ -12,7 +12,6 @@ from parameters import parameters_parse, parameters_save
 
 # TODO(simonhog): Temporary while testing. Final script should not rely on
 # plotting
-
 matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 
@@ -66,51 +65,92 @@ def factorizer_debug(diffraction_patterns):
     plt.show()
 
 
-def factorizer_nmf(diffraction_patterns, sample_width, sample_height, pattern_width, pattern_height):
+def pattern_generator_to_signal(diffraction_patterns, sample_width, sample_height, pattern_width, pattern_height):
     dp_array = np.empty((sample_width * sample_height, pattern_width, pattern_height))
     for i, dp in enumerate(diffraction_patterns):
         dp_array[i] = dp
-
     dp_array = dp_array.reshape((sample_height, sample_width, pattern_width, pattern_height))
-    dps = pyxem.ElectronDiffraction(dp_array)
+    return pyxem.ElectronDiffraction(dp_array)
+
+
+def decompose_nmf(diffraction_pattern, factor_count):
+    return diffraction_pattern.decomposition(
+            True,
+            algorithm='nmf',
+            output_dimension=factor_count)
+
+
+def factorizer_nmf(diffraction_patterns, sample_width, sample_height, pattern_width, pattern_height):
+    dps = pattern_generator_to_signal(diffraction_patterns, sample_width, sample_height, pattern_width, pattern_height)
     # dps.decomposition(True, algorithm='svd')
     # dps.plot_explained_variance_ratio()
     # TODO(simonhog): Automate getting number of factors
     factor_count = 2
-    dps.decomposition(
-            True,
-            algorithm='nmf',
-            output_dimension=factor_count
-            )
+
+    decompose_nmf(dps, factor_count)
+
     # dps.plot_decomposition_results()
     # plt.show()
-    decomposition_factors = dps.get_decomposition_factors().data
-    decomposition_loadings = dps.get_decomposition_loadings().data
-    return decomposition_factors, decomposition_loadings
+    factors = dps.get_decomposition_factors().data
+    loadings = dps.get_decomposition_loadings().data
+    return factors, loadings
 
 
-def save_results(parameters, factors, loadings):
-    output_dir = parameters['output_dir'] if 'output_dir' in parameters else ''
-    output_dir = os.path.join(output_dir, 'run_{}_{}'.format(parameters['shortname'], parameters['__date_string']))
-    os.makedirs(output_dir)
+def cepstrum(z):
+    z = np.fft.fft2(z)
+    z = z**2
+    z = np.log(1 + np.abs(z))
+    z = np.fft.ifft2(z)
+    z = np.fft.fftshift(z)
+    z = np.abs(z)
+    z = z**2
+    return z
 
-    parameters_save(parameters, output_dir)
+
+def factorizer_cepstrum_nmf(diffraction_patterns, sample_width, sample_height, pattern_width, pattern_height):
+    dps = pattern_generator_to_signal(diffraction_patterns, sample_width, sample_height, pattern_width, pattern_height)
+    dps.map(cepstrum, inplace=True)
+    factor_count = 2
+    decompose_nmf(dps, factor_count)
+    factors = dps.get_decomposition_factors().data
+    loadings = dps.get_decomposition_loadings().data
+    return factors, loadings
+
+
+def save_decomposition(output_dir, method_name, factors, loadings):
     for i in range(factors.shape[0]):
-        matplotimg.imsave(os.path.join(output_dir, 'factors_{}.tiff').format(i), factors[i])
+        matplotimg.imsave(os.path.join(output_dir, '{}_factors_{}.tiff').format(method_name, i), factors[i])
     for i in range(loadings.shape[0]):
-        matplotimg.imsave(os.path.join(output_dir, 'loadings_{}.tiff').format(i), loadings[i])
+        matplotimg.imsave(os.path.join(output_dir, '{}_loadings_{}.tiff').format(method_name, i), loadings[i])
 
 
 def main(parameter_file):
     run_parameters = parameters_parse(parameter_file)
-    start_time = time.perf_counter()
 
-    factors, loadings = run_noiseless(run_parameters, factorizer_nmf)
+    output_dir = run_parameters['output_dir'] if 'output_dir' in run_parameters else ''
+    output_dir = os.path.join(output_dir, 'run_{}_{}'.format(run_parameters['shortname'], run_parameters['__date_string']))
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
-    end_time = time.perf_counter()
-    print('Elapsed: {}'.format(end_time - start_time))
-    run_parameters['__elapsed_time'] = end_time - start_time
-    save_results(run_parameters, factors, loadings)
+    methods = {
+        'nmf': factorizer_nmf,
+        'cepstrum_nmf': factorizer_cepstrum_nmf
+    }
+
+    for name, factorizer in methods.items():
+        print('Running {}'.format(name))
+        start_time = time.perf_counter()
+
+        # TODO(simonhog): Check cost of generating. Better to cache, possibly save to disk and read chunked
+        factors, loadings = run_noiseless(run_parameters, factorizer)
+
+        end_time = time.perf_counter()
+        elapsed_time = end_time - start_time
+        print('    Elapsed: {}'.format(elapsed_time))
+        run_parameters['__elapsed_time_{}'.format(name)] = elapsed_time
+        save_decomposition(output_dir, name, factors, loadings)
+
+    parameters_save(run_parameters, output_dir)
 
 
 if __name__ == '__main__':
