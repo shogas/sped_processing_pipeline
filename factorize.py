@@ -98,7 +98,7 @@ def save_decomposition(output_dir, method_name, factors, loadings):
         matplotimg.imsave(os.path.join(output_dir, '{}_loadings_{}.tiff').format(method_name, i), loadings[i])
 
 
-def main(parameter_file):
+def run_factorizations(parameter_file):
     parameters = parameters_parse(parameter_file)
 
     output_dir = parameters['output_dir'] if 'output_dir' in parameters else ''
@@ -139,4 +139,4 @@ def main(parameter_file):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1])
+    run_factorizations(sys.argv[1])
