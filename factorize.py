@@ -1,19 +1,15 @@
+import glob
+import importlib
 import os
 import sys
 import time
 
 import numpy as np
-import pyxem
 
-import matplotlib
+# import matplotlib
 import matplotlib.image as matplotimg
 
 from parameters import parameters_parse, parameters_save
-
-# TODO(simonhog): Temporary while testing. Final script should not rely on
-# plotting
-matplotlib.use('Qt5Agg')
-import matplotlib.pyplot as plt
 
 
 def generate_test_linear_noiseless(parameters):
@@ -39,58 +35,6 @@ def generate_test_linear_noiseless(parameters):
     return factors, loadings
 
 
-def factorizer_debug(diffraction_patterns):
-    dps = pyxem.ElectronDiffraction(diffraction_patterns)
-    dps.plot()
-    plt.show()
-
-
-def decompose_nmf(diffraction_pattern, factor_count):
-    return diffraction_pattern.decomposition(
-            True,
-            algorithm='nmf',
-            output_dimension=factor_count)
-
-
-def factorizer_nmf(diffraction_patterns):
-    dps = pyxem.ElectronDiffraction(diffraction_patterns)
-
-    # dps.decomposition(True, algorithm='svd')
-    # dps.plot_explained_variance_ratio()
-    # TODO(simonhog): Automate getting number of factors
-    factor_count = 2
-
-    decompose_nmf(dps, factor_count)
-
-    # dps.plot_decomposition_results()
-    # plt.show()
-    factors = dps.get_decomposition_factors().data
-    loadings = dps.get_decomposition_loadings().data
-    return factors, loadings
-
-
-def cepstrum(z):
-    z = np.fft.fft2(z)
-    z = z**2
-    z = np.log(1 + np.abs(z))
-    z = np.fft.ifft2(z)
-    z = np.fft.fftshift(z)
-    z = np.abs(z)
-    z = z**2
-    return z
-
-
-def factorizer_cepstrum_nmf(diffraction_patterns):
-    dps = pyxem.ElectronDiffraction(diffraction_patterns)
-    dps.map(cepstrum, inplace=True, show_progressbar=False)
-    factor_count = 2
-    decompose_nmf(dps, factor_count)
-    factors = dps.get_decomposition_factors().data
-    loadings = dps.get_decomposition_loadings().data
-    # TODO(simonhog): Return factors from highest index with highest loading to get real-space values
-    return factors, loadings
-
-
 def save_decomposition(output_dir, method_name, factors, loadings):
     for i in range(factors.shape[0]):
         matplotimg.imsave(os.path.join(output_dir, '{}_factors_{}.tiff').format(method_name, i), factors[i])
@@ -98,19 +42,36 @@ def save_decomposition(output_dir, method_name, factors, loadings):
         matplotimg.imsave(os.path.join(output_dir, '{}_loadings_{}.tiff').format(method_name, i), loadings[i])
 
 
-def run_factorizations(parameter_file):
-    parameters = parameters_parse(parameter_file)
+def list_available_factorizers():
+    """ List all available factorizers in the methods directory """
+    print('Available factorizers from methods directory:')
+    for module_file in glob.iglob('methods/*.py'):
+        factorizer_module = os.path.splitext(os.path.basename(module_file))[0]
+        # Look for all python files in the methods subdirectory
+        mod = importlib.import_module('methods.{}'.format(factorizer_module))
+        factorizer = getattr(mod, 'factorize')
+        if factorizer:
+            print(' '*4 + factorizer.__name__)
 
+
+def get_factorizer(name):
+    """ Load the factorizer from methods/<name>.py and find the factorize metho
+
+    Args:
+        name: name of factorization method, corresponding to the filename methods/<name>.py.
+    Returns:
+        Factorizer method.
+    """
+    mod = importlib.import_module('methods.{}'.format(name))
+    return getattr(mod, 'factorize')
+
+
+def run_factorizations(parameters):
     output_dir = parameters['output_dir'] if 'output_dir' in parameters else ''
     output_dir = os.path.join(output_dir, 'run_{}_{}'.format(parameters['shortname'], parameters['__date_string']))
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    methods = {
-        # 'debug': factorizer_debug,
-        'nmf': factorizer_nmf,
-        'cepstrum_nmf': factorizer_cepstrum_nmf
-    }
 
     ground_truth_factors, ground_truth_loadings = generate_test_linear_noiseless(parameters)
 
@@ -122,21 +83,30 @@ def run_factorizations(parameter_file):
     diffraction_patterns = np.matmul(loadings.T, factors)
     diffraction_patterns = diffraction_patterns.reshape((sample_width, sample_height, pattern_width, pattern_height))
 
-    for name, factorizer in methods.items():
-        print('Running {}'.format(name))
+    methods = parameters['methods'].split(',')
+    for method_name in methods:
+        print('Running factorizer "{}"'.format(method_name))
         start_time = time.perf_counter()
+
+        factorizer = get_factorizer(method_name)
 
         factors, loadings = factorizer(diffraction_patterns.copy())
 
         end_time = time.perf_counter()
         elapsed_time = end_time - start_time
         print('    Elapsed: {}'.format(elapsed_time))
-        parameters['__elapsed_time_{}'.format(name)] = elapsed_time
-        save_decomposition(output_dir, name, factors, loadings)
+        parameters['__elapsed_time_{}'.format(method_name)] = elapsed_time
+        save_decomposition(output_dir, method_name, factors, loadings)
 
     save_decomposition(output_dir, 'ground_truth', ground_truth_factors, ground_truth_loadings)
     parameters_save(parameters, output_dir)
 
 
 if __name__ == '__main__':
-    run_factorizations(sys.argv[1])
+    if len(sys.argv) > 1:
+        parameters = parameters_parse(sys.argv[1])
+    else:
+        # TODO(simonhog): Help message
+        parameters = {}
+
+    run_factorizations(parameters)
