@@ -21,6 +21,17 @@ def classify(pattern_library, image):
 
 
 def factorize(diffraction_patterns, parameters):
+    """ Factorize the diffraction patterns using NMF on slices.
+
+    The diffraction patterns are divided into slices, and each of them are then
+    decomposed using NMF. The resulting factors matched against a library of
+    patterns and then scaled to also match the maximum intensity. This same
+    scaling is used to scale the loading, using and correcting for the fact
+    that a factorization X = FL only is unique to a factor s, where F -> F' =
+    sF and L -> L' = L/s.
+
+    NOTE: Current implementation of pattern matching is temporary.
+    """
 
     # TODO(simonhog): Temporary mock
     pattern_library = [
@@ -41,20 +52,17 @@ def factorize(diffraction_patterns, parameters):
         # TODO(simonhog): Use template-matching instead
         new_factors = dps.get_decomposition_factors().data
         loading_mappings = { factor_index: classify(pattern_library, new_factors[factor_index]) for factor_index in range(factor_count)}
-        print(loading_mappings)
-
-        # dps.plot_decomposition_results()
         loading_data = dps.get_decomposition_loadings().data
-        total_loading = np.sum(loading_data[new_factor_index] for new_factor_index, factor_index in loading_mappings.items() if factor_index is not None)
         for new_factor_index, factor_index in loading_mappings.items():
             if factor_index is not None:
-                print('Moving {} -> {}'.format(new_factor_index, factor_index))
-                loading = loading_data[factor_index]  #/total_loading
-                plt.imshow(new_factors[new_factor_index])
-                plt.show()
-                loadings[new_factor_index, :, split_start:split_end] = loading
+                loading = loading_data[new_factor_index]  #/total_loading
+                scaling = np.max(new_factors[new_factor_index]) / np.max(pattern_library[factor_index])
+                loading *= scaling
+                loadings[factor_index, :, split_start:split_end] = loading
 
-        print()
+        total_loading = np.sum(loadings[:, :, split_start:split_end], axis=0)
+        for factor_index in range(factor_count):
+            loadings[factor_index, :, split_start:split_end] /= total_loading
 
     plt.subplot(2, 1, 1)
     plt.imshow(loadings[0])
@@ -62,39 +70,4 @@ def factorize(diffraction_patterns, parameters):
     plt.imshow(loadings[1])
     plt.show()
     return factors, loadings
-
-
-
-
-
-# new_factors = dps.get_decomposition_factors().data
-# for new_factor_index in range(factor_count):
-#     threshold = 0.001
-#     ptp = np.max(new_factors[new_factor_index]) - np.min(new_factors[new_factor_index])
-#     is_factor = ptp > threshold
-#     print('New {} is factor: {} ({})'.format(new_factor_index, is_factor, ptp))
-#     if is_factor:
-#         differences = np.empty(factor_count)
-#         for factor_index in range(factor_count):
-#             if factor_found[factor_index]:
-#                 # differences[factor_index] = np.linalg.norm(factors[factor_index] - new_factors[new_factor_index])
-#                 fac = factors[factor_index]/np.max(factors[factor_index])
-#                 fac_new = new_factors[new_factor_index]/np.max(factors[factor_index])
-#                 diff = np.abs(fac - fac_new)
-#                 differences[factor_index] = np.sum(diff)
-#                 print('Difference f({}), n({}): {}'.format(factor_index, new_factor_index, differences[factor_index]))
-#                 plt.subplot(2, 2, 1)
-#                 plt.title('f {}'.format(factor_index))
-#                 plt.imshow(fac)
-#                 plt.subplot(2, 2, 2)
-#                 plt.title('n {}'.format(new_factor_index))
-#                 plt.imshow(fac_new)
-#                 plt.subplot(2, 2, 3)
-#                 plt.title('diff')
-#                 plt.imshow(diff)
-#                 plt.show()
-#             else:
-#                 differences[factor_index] = 1.0
-#         print(differences)
-#         loading_mappings[new_factor_index] = np.argmin(differences)
 
