@@ -6,3 +6,4 @@ source_a_file = ../../Data/generated_patterns/DiffractionPattern_gen_01.png
 source_b_file = ../../Data/generated_patterns/DiffractionPattern_gen_02.png
 methods = nmf_split
 split_width = 5
+split_height = 3

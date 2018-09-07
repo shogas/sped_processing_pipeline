@@ -39,35 +39,36 @@ def factorize(diffraction_patterns, parameters):
         matplotimg.imread(parameters['source_b_file'])[:, :, 0]
     ]
 
-    split_width = int(parameters['split_width'])
     full_width = diffraction_patterns.shape[1]
+    full_height = diffraction_patterns.shape[0]
+    split_width = int(parameters['split_width']) if 'split_width' in parameters else full_width
+    split_height = int(parameters['split_height']) if 'split_height' in parameters else full_height
     factor_count = 2  # TODO(simonhog): Automatic/parameterized
-    factors = pattern_library  # TODO(simonhog): Only used patterns
+
     loadings = np.empty((factor_count, diffraction_patterns.shape[0], diffraction_patterns.shape[1]))
-    for split_start in range(0, full_width, split_width):
-        split_end = min(split_start + split_width, full_width)
-        dps = ElectronDiffraction(diffraction_patterns[:, split_start:split_end])
-        decompose_nmf(dps, factor_count)
+    for split_start_y in range(0, full_height, split_height):
+        split_end_y = min(split_start_y + split_height, full_height)
+        slice_y = slice(split_start_y, split_end_y)
+        for split_start_x in range(0, full_width, split_width):
+            split_end_x = min(split_start_x + split_width, full_width)
+            slice_x = slice(split_start_x, split_end_x)
+            el_diff = ElectronDiffraction(diffraction_patterns[slice_y, slice_x])
+            decompose_nmf(el_diff, factor_count)
 
-        # TODO(simonhog): Use template-matching instead
-        new_factors = dps.get_decomposition_factors().data
-        loading_mappings = { factor_index: classify(pattern_library, new_factors[factor_index]) for factor_index in range(factor_count)}
-        loading_data = dps.get_decomposition_loadings().data
-        for new_factor_index, factor_index in loading_mappings.items():
-            if factor_index is not None:
-                loading = loading_data[new_factor_index]  #/total_loading
-                scaling = np.max(new_factors[new_factor_index]) / np.max(pattern_library[factor_index])
-                loading *= scaling
-                loadings[factor_index, :, split_start:split_end] = loading
+            # TODO(simonhog): Use template-matching instead
+            new_factors = el_diff.get_decomposition_factors().data
+            loading_mappings = { factor_index: classify(pattern_library, new_factors[factor_index])
+                                    for factor_index in range(factor_count) }
+            loading_data = el_diff.get_decomposition_loadings().data
+            for new_factor_index, factor_index in loading_mappings.items():
+                if factor_index is not None:
+                    scaling = np.max(new_factors[new_factor_index]) / np.max(pattern_library[factor_index])
+                    loadings[factor_index, slice_y, slice_x] = scaling * loading_data[new_factor_index]
 
-        total_loading = np.sum(loadings[:, :, split_start:split_end], axis=0)
-        for factor_index in range(factor_count):
-            loadings[factor_index, :, split_start:split_end] /= total_loading
+            total_loading = np.sum(loadings[:, slice_y, slice_x], axis=0)
+            for factor_index in range(factor_count):
+                loadings[factor_index, slice_y, slice_x] /= total_loading
 
-    plt.subplot(2, 1, 1)
-    plt.imshow(loadings[0])
-    plt.subplot(2, 1, 2)
-    plt.imshow(loadings[1])
-    plt.show()
+    factors = pattern_library  # TODO(simonhog): Only used patterns
     return factors, loadings
 
