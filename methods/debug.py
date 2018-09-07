@@ -5,7 +5,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 from pyxem import ElectronDiffraction
 
-def factorize(diffraction_patterns):
+def factorize(diffraction_patterns, parameters):
     dps = ElectronDiffraction(diffraction_patterns)
     dps.plot()
     plt.show()

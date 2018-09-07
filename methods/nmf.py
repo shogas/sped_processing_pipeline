@@ -19,7 +19,7 @@ def decompose_nmf(diffraction_pattern, factor_count):
             output_dimension=factor_count)
 
 
-def factorize(diffraction_patterns):
+def factorize(diffraction_patterns, parameters):
     dps = ElectronDiffraction(diffraction_patterns)
 
     # dps.decomposition(True, algorithm='svd')

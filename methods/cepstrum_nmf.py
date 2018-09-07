@@ -14,7 +14,7 @@ def cepstrum(z):
     return z
 
 
-def factorize(diffraction_patterns):
+def factorize(diffraction_patterns, parameters):
     dps = ElectronDiffraction(diffraction_patterns)
     dps.map(cepstrum, inplace=True, show_progressbar=False)
     factor_count = 2

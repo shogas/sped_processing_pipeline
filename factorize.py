@@ -90,13 +90,13 @@ def run_factorizations(parameters):
 
         factorizer = get_factorizer(method_name)
 
-        factors, loadings = factorizer(diffraction_patterns.copy())
+        factors, loadings = factorizer(diffraction_patterns.copy(), parameters)
 
         end_time = time.perf_counter()
         elapsed_time = end_time - start_time
         print('    Elapsed: {}'.format(elapsed_time))
         parameters['__elapsed_time_{}'.format(method_name)] = elapsed_time
-        save_decomposition(output_dir, method_name, factors, loadings)
+        # save_decomposition(output_dir, method_name, factors, loadings)
 
     save_decomposition(output_dir, 'ground_truth', ground_truth_factors, ground_truth_loadings)
     parameters_save(parameters, output_dir)

@@ -4,4 +4,5 @@ sample_count_width = 30
 sample_count_height = 5
 source_a_file = ../../Data/generated_patterns/DiffractionPattern_gen_01.png
 source_b_file = ../../Data/generated_patterns/DiffractionPattern_gen_02.png
-methods = nmf,cepstrum_nmf
+methods = nmf_split
+split_width = 15
