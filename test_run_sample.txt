@@ -1,8 +1,7 @@
-shortname = testing
+shortname = sample_test
 output_dir = ../../Data/Tmp
-sample_count_width = 30
-sample_count_height = 5
-test_data_source = linear_ramp
+test_data_source = sample_data
+sample_file = D:/Dokumenter/MTNANO/Prosjektoppgave/SPED_data_GaAs_NW/gen/Julie_180510_SCN45_FIB_a_crop.hdf5
 source_a_file = ../../Data/generated_patterns/DiffractionPattern_gen_01.png
 source_b_file = ../../Data/generated_patterns/DiffractionPattern_gen_02.png
 methods = nmf_split

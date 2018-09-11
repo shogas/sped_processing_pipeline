@@ -8,11 +8,18 @@ import numpy as np
 
 # import matplotlib
 import matplotlib.image as matplotimg
+import matplotlib.pyplot as plt
+
+from pyxem import load as pyxem_load
 
 from parameters import parameters_parse, parameters_save
 
 
 def generate_test_linear_noiseless(parameters):
+    for source_file in ('source_a_file', 'source_b_file'):
+        if source_file not in parameters:
+            print('No parameter {} given'.format(source_file))
+            exit(1)
     source_a = matplotimg.imread(parameters['source_a_file'])[:, :, 0]
     source_b = matplotimg.imread(parameters['source_b_file'])[:, :, 0]
     factors = np.stack((source_a, source_b))
@@ -66,13 +73,7 @@ def get_factorizer(name):
     return getattr(mod, 'factorize')
 
 
-def run_factorizations(parameters):
-    output_dir = parameters['output_dir'] if 'output_dir' in parameters else ''
-    output_dir = os.path.join(output_dir, 'run_{}_{}'.format(parameters['shortname'], parameters['__date_string']))
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
-
+def data_source_linear_ramp(output_dir):
     ground_truth_factors, ground_truth_loadings = generate_test_linear_noiseless(parameters)
 
     # TODO(simonhog): numpy probably has a way of doing this without the reshape
@@ -80,8 +81,40 @@ def run_factorizations(parameters):
     factor_count, sample_width, sample_height = ground_truth_loadings.shape
     factors = ground_truth_factors.reshape((factor_count, -1))
     loadings = ground_truth_loadings.reshape((factor_count, -1))
+    save_decomposition(output_dir, 'ground_truth', ground_truth_factors, ground_truth_loadings)
+
     diffraction_patterns = np.matmul(loadings.T, factors)
     diffraction_patterns = diffraction_patterns.reshape((sample_width, sample_height, pattern_width, pattern_height))
+    return diffraction_patterns
+
+
+def data_source_sample_data(output_dir):
+    sample_filename = parameters['sample_file']
+    sample = pyxem_load(sample_filename)
+    sample.change_dtype('float64')
+    # TODO(simonhog): Allow data_source_* to return lazy signals. (dask)
+    return sample.data
+
+
+def data_source_name(data_source):
+    return 'data_source_' + data_source
+
+def run_factorizations(parameters):
+    output_dir = parameters['output_dir'] if 'output_dir' in parameters else ''
+    output_dir = os.path.join(output_dir, 'run_{}_{}'.format(parameters['shortname'], parameters['__date_string']))
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+
+    if not 'test_data_source' in parameters:
+        print('No test_data_source given')
+        exit(1)
+    elif data_source_name(parameters['test_data_source']) not in globals():
+        print('Unknown test_data_source {}'.format(parameters['test_data_source']))
+        exit(1)
+
+    diffraction_patterns = globals()[data_source_name(parameters['test_data_source'])](output_dir)
+
 
     methods = parameters['methods'].split(',')
     for method_name in methods:
@@ -96,9 +129,17 @@ def run_factorizations(parameters):
         elapsed_time = end_time - start_time
         print('    Elapsed: {}'.format(elapsed_time))
         parameters['__elapsed_time_{}'.format(method_name)] = elapsed_time
+        plt.subplot(2, 2, 1)
+        plt.imshow(factors[0])
+        plt.subplot(2, 2, 2)
+        plt.imshow(factors[1])
+        plt.subplot(2, 2, 3)
+        plt.imshow(loadings[0])
+        plt.subplot(2, 2, 4)
+        plt.imshow(loadings[1])
+        plt.show()
         # save_decomposition(output_dir, method_name, factors, loadings)
 
-    save_decomposition(output_dir, 'ground_truth', ground_truth_factors, ground_truth_loadings)
     parameters_save(parameters, output_dir)
 
 
