@@ -20,6 +20,7 @@ def git_uncommited_changes():
     # return len(res) > 0
 
 
+# TODO(simonhog): Allow comments
 def parameters_parse(filename):
     # TODO(simonhog): Error handling
     with open(filename, 'r') as file:

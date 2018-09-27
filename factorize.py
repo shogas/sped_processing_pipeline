@@ -6,13 +6,17 @@ import time
 
 import numpy as np
 
-# import matplotlib
+import matplotlib
+matplotlib.use('Qt5Agg')
 import matplotlib.image as matplotimg
 import matplotlib.pyplot as plt
 
 from pyxem import load as pyxem_load
 
 from parameters import parameters_parse, parameters_save
+
+# Allow methods to access project files
+sys.path.append('.')
 
 
 def generate_test_linear_noiseless(parameters):

@@ -1,3 +1,5 @@
+@echo off
+
 pushd ..\..\Data\Tmp
 for /f %%i in ('dir /b /a:d run_*') do (
     rmdir /s /q %%i 2>NUL
