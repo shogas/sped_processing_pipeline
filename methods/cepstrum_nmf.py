@@ -1,18 +1,8 @@
 import numpy as np
 from pyxem import ElectronDiffraction
 
-from .nmf import decompose_nmf
-
-def cepstrum(z):
-    z = np.fft.fft2(z)
-    z = z**2
-    z = np.log(1 + np.abs(z))
-    z = np.fft.ifft2(z)
-    z = np.fft.fftshift(z)
-    z = np.abs(z)
-    z = z**2
-    return z
-
+from utils.preprocess import cepstrum
+from utils.decomposition import decompose_nmf
 
 def factorize(diffraction_patterns, parameters):
     dps = ElectronDiffraction(diffraction_patterns)

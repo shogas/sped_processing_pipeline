@@ -1,0 +1,17 @@
+shortname = debug_all_run_small
+output_dir = ../../Data/Tmp
+test_data_source = sample_data
+sample_file = D:/Dokumenter/MTNANO/Prosjektoppgave/SPED_data_GaAs_NW/gen/Julie_180510_SCN45_FIB_c_crop_small.hdf5
+methods = cepstrum_nmf, nmf, nmf_split
+split_width = 3
+split_height = 3
+zone_h = 1
+zone_k = 1
+zone_l = 1
+structure_zb_file = D:/Dokumenter/MTNANO/Prosjektoppgave/Data/Gen/NN_test_data/GaAs_mp-2534_conventional_standard.cif
+structure_wz_file = D:/Dokumenter/MTNANO/Prosjektoppgave/Data/Gen/NN_test_data/GaAs_mp-8883_conventional_standard.cif
+beam_energy_keV = 200
+specimen_thickness = 80
+reciprocal_radius = 1
+target_pattern_dimension_pixels = 144
+angstrom_per_pixel = 19.6

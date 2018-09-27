@@ -15,9 +15,6 @@ from pyxem import load as pyxem_load
 
 from parameters import parameters_parse, parameters_save
 
-# Allow methods to access project files
-sys.path.append('.')
-
 
 def generate_test_linear_noiseless(parameters):
     for source_file in ('source_a_file', 'source_b_file'):
@@ -120,7 +117,7 @@ def run_factorizations(parameters):
     diffraction_patterns = globals()[data_source_name(parameters['test_data_source'])](output_dir)
 
 
-    methods = parameters['methods'].split(',')
+    methods = [method.strip() for method in parameters['methods'].split(',')]
     for method_name in methods:
         print('Running factorizer "{}"'.format(method_name))
         start_time = time.perf_counter()
@@ -133,15 +130,15 @@ def run_factorizations(parameters):
         elapsed_time = end_time - start_time
         print('    Elapsed: {}'.format(elapsed_time))
         parameters['__elapsed_time_{}'.format(method_name)] = elapsed_time
-        plt.subplot(2, 2, 1)
-        plt.imshow(factors[0])
-        plt.subplot(2, 2, 2)
-        plt.imshow(factors[1])
-        plt.subplot(2, 2, 3)
-        plt.imshow(loadings[0])
-        plt.subplot(2, 2, 4)
-        plt.imshow(loadings[1])
-        plt.show()
+        # plt.subplot(2, 2, 1)
+        # plt.imshow(factors[0])
+        # plt.subplot(2, 2, 2)
+        # plt.imshow(factors[1])
+        # plt.subplot(2, 2, 3)
+        # plt.imshow(loadings[0])
+        # plt.subplot(2, 2, 4)
+        # plt.imshow(loadings[1])
+        # plt.show()
         # save_decomposition(output_dir, method_name, factors, loadings)
 
     parameters_save(parameters, output_dir)
