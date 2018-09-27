@@ -1,3 +1,4 @@
+debug = true
 shortname = debug_all_run_small
 output_dir = ../../Data/Tmp
 test_data_source = sample_data

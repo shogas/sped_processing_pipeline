@@ -33,8 +33,8 @@ def factorize(diffraction_patterns, parameters):
     diffraction_pattern_image_size = diffraction_patterns.shape[2]
     full_width = diffraction_patterns.shape[1]
     full_height = diffraction_patterns.shape[0]
-    split_width = int(parameters['split_width']) if 'split_width' in parameters else full_width
-    split_height = int(parameters['split_height']) if 'split_height' in parameters else full_height
+    split_width = parameters['split_width'] if 'split_width' in parameters else full_width
+    split_height = parameters['split_height'] if 'split_height' in parameters else full_height
     factor_count = 2  # TODO(simonhog): Automatic/parameterized
 
     # TODO(simonhog): Constants...

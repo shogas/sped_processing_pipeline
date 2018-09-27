@@ -25,8 +25,8 @@ def generate_test_linear_noiseless(parameters):
     source_b = matplotimg.imread(parameters['source_b_file'])[:, :, 0]
     factors = np.stack((source_a, source_b))
 
-    width = int(parameters['sample_count_width'])
-    height = int(parameters['sample_count_height'])
+    width = parameters['sample_count_width']
+    height = parameters['sample_count_height']
     loadings = np.empty((2, height, width))
     one_third = width // 3
     for y in range(height):

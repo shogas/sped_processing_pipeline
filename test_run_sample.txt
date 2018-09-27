@@ -1,3 +1,4 @@
+debug = true
 shortname = sample_test
 output_dir = ../../Data/Tmp
 test_data_source = sample_data

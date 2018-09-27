@@ -1,3 +1,4 @@
+debug = true
 shortname = testing
 output_dir = ../../Data/Tmp
 sample_count_width = 30

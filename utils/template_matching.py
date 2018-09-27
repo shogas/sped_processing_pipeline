@@ -60,14 +60,14 @@ def generate_rotation_list(h, k, l, max_theta, resolution):
 
 # TODO(simonhog): A lot of this comes from the sped_nn_recognition codebase
 def generate_diffraction_library(parameters, phase_names):
-    h = int(parameters['zone_h'])
-    k = int(parameters['zone_k'])
-    l = int(parameters['zone_l'])
-    beam_energy_keV = float(parameters['beam_energy_keV'])
-    specimen_thickness = float(parameters['specimen_thickness'])
-    target_pattern_dimension_pixels = int(parameters['target_pattern_dimension_pixels'])
-    reciprocal_radius = float(parameters['reciprocal_radius'])
-    angstrom_per_pixel = float(parameters['angstrom_per_pixel'])
+    h = parameters['zone_h']
+    k = parameters['zone_k']
+    l = parameters['zone_l']
+    beam_energy_keV = parameters['beam_energy_keV']
+    specimen_thickness = parameters['specimen_thickness']
+    target_pattern_dimension_pixels = parameters['target_pattern_dimension_pixels']
+    reciprocal_radius = parameters['reciprocal_radius']
+    angstrom_per_pixel = parameters['angstrom_per_pixel']
     max_theta = np.pi / 8
     resolution = 5
     rotation_list = generate_rotation_list(h, k, l, max_theta, resolution).reshape(-1, 3)
