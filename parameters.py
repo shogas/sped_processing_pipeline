@@ -30,11 +30,18 @@ def parameters_parse(filename):
     with open(filename, 'r') as file:
         lines = file.read().splitlines()
     parameters = {}
-    for line in lines:
+    for line_number, line in enumerate(lines):
+        line = line.strip()
         comment_start = line.find('#')
         if comment_start >= 0:
             line = line[:comment_start]
+        if len(line) == 0:
+            continue
+
         parts = line.split('=', 1)
+        if len(parts) != 2:
+            print('Invalid syntax in "{}" on line {}. Expected key = value (separated by single =).'.format(
+                filename, line_number + 1))
         key = parts[0].strip()
         value = parts[1].strip()
         if value.isdigit():
