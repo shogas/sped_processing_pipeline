@@ -116,7 +116,6 @@ def run_factorizations(parameters):
 
     diffraction_patterns = globals()[data_source_name(parameters['test_data_source'])](output_dir)
 
-
     methods = [method.strip() for method in parameters['methods'].split(',')]
     for method_name in methods:
         print('Running factorizer "{}"'.format(method_name))
@@ -130,16 +129,14 @@ def run_factorizations(parameters):
         elapsed_time = end_time - start_time
         print('    Elapsed: {}'.format(elapsed_time))
         parameters['__elapsed_time_{}'.format(method_name)] = elapsed_time
-        # plt.subplot(2, 2, 1)
-        # plt.imshow(factors[0])
-        # plt.subplot(2, 2, 2)
-        # plt.imshow(factors[1])
-        # plt.subplot(2, 2, 3)
-        # plt.imshow(loadings[0])
-        # plt.subplot(2, 2, 4)
-        # plt.imshow(loadings[1])
-        # plt.show()
-        # save_decomposition(output_dir, method_name, factors, loadings)
+        for i in range(factors.shape[0]):
+            plt.subplot(2, factors.shape[0], i+1)
+            plt.imshow(factors[i])
+        for i in range(factors.shape[0]):
+            plt.subplot(2, factors.shape[0], factors.shape[0] + i + 1)
+            plt.imshow(loadings[i])
+        plt.show()
+        save_decomposition(output_dir, method_name, factors, loadings)
 
     parameters_save(parameters, output_dir)
 
