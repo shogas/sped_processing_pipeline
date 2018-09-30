@@ -43,11 +43,17 @@ def generate_test_linear_noiseless(parameters):
     return factors, loadings
 
 
-def save_decomposition(output_dir, method_name, factors, loadings):
+def save_decomposition(output_dir, method_name, slice_x, slice_y, factors, loadings):
+    output_prefix = os.path.join(
+            output_dir,
+            '{}_{}-{}_{}-{}_'.format(
+                method_name,
+                slice_x.start, slice_x.stop,
+                slice_y.start, slice_y.stop))
     for i in range(factors.shape[0]):
-        matplotimg.imsave(os.path.join(output_dir, '{}_factors_{}.tiff').format(method_name, i), factors[i])
+        matplotimg.imsave('{}_factors_{}.tiff'.format(output_prefix, i), factors[i])
     for i in range(loadings.shape[0]):
-        matplotimg.imsave(os.path.join(output_dir, '{}_loadings_{}.tiff').format(method_name, i), loadings[i])
+        matplotimg.imsave('{}_loadings_{}.tiff'.format(output_prefix, i), loadings[i])
 
 
 def list_available_factorizers():
@@ -91,14 +97,14 @@ def data_source_linear_ramp(output_dir):
 
 def data_source_sample_data(output_dir):
     sample_filename = parameters['sample_file']
-    sample = pyxem_load(sample_filename)
-    sample.change_dtype('float64')
-    # TODO(simonhog): Allow data_source_* to return lazy signals. (dask)
+    sample = pyxem_load(sample_filename, lazy=True)
+    sample.change_dtype('float32')
     return sample.data
 
 
 def data_source_name(data_source):
     return 'data_source_' + data_source
+
 
 def run_factorizations(parameters):
     output_dir = parameters['output_dir'] if 'output_dir' in parameters else ''
@@ -114,29 +120,46 @@ def run_factorizations(parameters):
         print('Unknown test_data_source {}'.format(parameters['test_data_source']))
         exit(1)
 
-    diffraction_patterns = globals()[data_source_name(parameters['test_data_source'])](output_dir)
-
     methods = [method.strip() for method in parameters['methods'].split(',')]
-    for method_name in methods:
-        print('Running factorizer "{}"'.format(method_name))
-        start_time = time.perf_counter()
 
-        factorizer = get_factorizer(method_name)
+    diffraction_patterns = globals()[data_source_name(parameters['test_data_source'])](output_dir)
+    # NOTE(simonhog): Assuming row-major storage
+    full_width = diffraction_patterns.shape[1]
+    full_height = diffraction_patterns.shape[0]
+    split_width = parameters['split_width'] if 'split_width' in parameters else full_width
+    split_height = parameters['split_height'] if 'split_height' in parameters else full_height
 
-        factors, loadings = factorizer(diffraction_patterns.copy(), parameters)
+    for split_start_y in range(0, full_height, split_height):
+        split_end_y = min(split_start_y + split_height, full_height)
+        slice_y = slice(split_start_y, split_end_y)
+        for split_start_x in range(0, full_width, split_width):
+            split_end_x = min(split_start_x + split_width, full_width)
+            slice_x = slice(split_start_x, split_end_x)
+            print('\n\n====================================')
+            print('Starting work on slice ({}:{}, {}:{})\n'.format(split_start_x, split_end_x, split_start_y, split_end_y))
+            current_data = np.array(diffraction_patterns[slice_y, slice_x])
+            for method_name in methods:
+                print('Running factorizer "{}"'.format(method_name))
+                start_time = time.perf_counter()
 
-        end_time = time.perf_counter()
-        elapsed_time = end_time - start_time
-        print('    Elapsed: {}'.format(elapsed_time))
-        parameters['__elapsed_time_{}'.format(method_name)] = elapsed_time
-        for i in range(factors.shape[0]):
-            plt.subplot(2, factors.shape[0], i+1)
-            plt.imshow(factors[i])
-        for i in range(factors.shape[0]):
-            plt.subplot(2, factors.shape[0], factors.shape[0] + i + 1)
-            plt.imshow(loadings[i])
-        plt.show()
-        save_decomposition(output_dir, method_name, factors, loadings)
+                factorizer = get_factorizer(method_name)
+
+                # TODO(simonhog): 
+                factors, loadings = factorizer(current_data.copy(), parameters)
+
+                end_time = time.perf_counter()
+                elapsed_time = end_time - start_time
+                print('    Elapsed: {}'.format(elapsed_time))
+                parameters['__elapsed_time_{}'.format(method_name)] += elapsed_time
+                if False:
+                    for i in range(factors.shape[0]):
+                        plt.subplot(2, factors.shape[0], i+1)
+                        plt.imshow(factors[i])
+                    for i in range(factors.shape[0]):
+                        plt.subplot(2, factors.shape[0], factors.shape[0] + i + 1)
+                        plt.imshow(loadings[i])
+                    plt.show()
+                save_decomposition(output_dir, method_name, slice_x, slice_y, factors, loadings)
 
     parameters_save(parameters, output_dir)
 

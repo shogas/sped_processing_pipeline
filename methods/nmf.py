@@ -1,3 +1,4 @@
+import numpy as np
 from pyxem import ElectronDiffraction
 
 from utils.decomposition import decompose_nmf
@@ -18,5 +19,11 @@ def factorize(diffraction_patterns, parameters):
     # plt.show()
     factors = dps.get_decomposition_factors().data
     loadings = dps.get_decomposition_loadings().data
+
+    # Factorization is only unique to a constant factor.
+    # Scale so that loadings has a maximum value of 1.
+    scale = loadings.max()
+    factors *= scale
+    loadings /= scale
     return factors, loadings
 
