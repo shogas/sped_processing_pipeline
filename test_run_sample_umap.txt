@@ -5,6 +5,13 @@ output_dir = ../../Data/Tmp
 test_data_source = sample_data
 sample_file = D:/Dokumenter/MTNANO/Prosjektoppgave/SPED_data_GaAs_NW/gen/Julie_180510_SCN45_FIB_c_crop_50,200-99,399_gaussian_difference_1_6.hdf5
 
+umap_random_seed = 42
+umap_neighbors = 30
+umap_min_dist = 0.0
+umap_n_components = 2
+umap_cluster_min_samples = 20
+umap_cluster_size = 500
+
 split_width = 40
 split_height = 80
 
