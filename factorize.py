@@ -11,7 +11,9 @@ matplotlib.use('Qt5Agg')
 import matplotlib.image as matplotimg
 import matplotlib.pyplot as plt
 
-from pyxem import load as pyxem_load
+import pyxem as pxm
+from pyxem.utils.expt_utils import circular_mask
+
 
 from parameters import parameters_parse, parameters_save
 
@@ -97,13 +99,48 @@ def data_source_linear_ramp(output_dir):
 
 def data_source_sample_data(output_dir):
     sample_filename = parameters['sample_file']
-    sample = pyxem_load(sample_filename, lazy=True)
+    sample = pxm.load(sample_filename, lazy=True)
+    # TODO(simonhog): Parameterize data type?
     sample.change_dtype('float32')
     return sample.data
 
 
 def data_source_name(data_source):
     return 'data_source_' + data_source
+
+
+def preprocessor_gaussian_difference(data, parameters):
+    # TODO(simonhog): Does this copy the data? Hopefully not
+    signal = pxm.ElectronDiffraction(data)
+    sig_width = signal.axes_manager.signal_shape[0]
+    sig_height = signal.axes_manager.signal_shape[1]
+
+    signal.center_direct_beam(
+            radius_start=parameters['center_radius_start'],
+            radius_finish=parameters['center_radius_finish'],
+            square_width=perameters['center_square'],
+            show_progressbar=False)
+
+    signal = signal.remove_background(
+            'gaussian_difference',
+            sigma_min=parameters['gaussian_sigma_min'],
+            sigma_max=parameters['gaussian_sigma_max'],
+            show_progressbar=False)
+    signal.data /= signal.data.max()
+
+    # TODO(simonhog): Could cache beam mask between calls
+    sig_center = (sig_width - 1) / 2, (sig_height - 1) / 2
+    direct_beam_mask = circular_mask(shape=(sig_width, sig_height),
+                                     radius=parameters['direct_beam_mask_radius'],
+                                     center=sig_center)
+    np.invert(direct_beam_mask, out=direct_beam_mask)
+    signal.data *= direct_beam_mask
+
+    return signal.data
+
+
+def preprocessor_name(preprocessor):
+    return 'preprocessor_' + preprocessor
 
 
 def run_factorizations(parameters):
@@ -122,13 +159,18 @@ def run_factorizations(parameters):
 
     methods = [method.strip() for method in parameters['methods'].split(',')]
 
-    diffraction_patterns = globals()[data_source_name(parameters['test_data_source'])](output_dir)
+    data_source_loader = globals()[data_source_name(parameters['test_data_source'])]
+    if 'preprocess' in parameters:
+        preprocessor = globals()[preprocessor_name(parameters['preprocess'])]
+
+    diffraction_patterns = data_source_loader(output_dir)
     # NOTE(simonhog): Assuming row-major storage
     full_width = diffraction_patterns.shape[1]
     full_height = diffraction_patterns.shape[0]
     split_width = parameters['split_width'] if 'split_width' in parameters else full_width
     split_height = parameters['split_height'] if 'split_height' in parameters else full_height
 
+    # TODO(simonhog): Might want to align the splits to data chunk sizes (diffraction_patterns.chunks)
     for split_start_y in range(0, full_height, split_height):
         split_end_y = min(split_start_y + split_height, full_height)
         slice_y = slice(split_start_y, split_end_y)
@@ -138,6 +180,9 @@ def run_factorizations(parameters):
             print('\n\n====================================')
             print('Starting work on slice ({}:{}, {}:{})\n'.format(split_start_x, split_end_x, split_start_y, split_end_y))
             current_data = np.array(diffraction_patterns[slice_y, slice_x])
+            if 'preprocess' in parameters:
+                print('Preprocessing')
+                current_data = preprocessor(current_data)
             for method_name in methods:
                 print('Running factorizer "{}"'.format(method_name))
                 start_time = time.perf_counter()
@@ -150,7 +195,8 @@ def run_factorizations(parameters):
                 end_time = time.perf_counter()
                 elapsed_time = end_time - start_time
                 print('    Elapsed: {}'.format(elapsed_time))
-                parameters['__elapsed_time_{}'.format(method_name)] += elapsed_time
+                elapsed_key = '__elapsed_time_{}'.format(method_name)
+                parameters[elapsed_key] = elapsed_time + (parameters[elapsed_key] if elapsed_key in parameters else 0)
                 if False:
                     for i in range(factors.shape[0]):
                         plt.subplot(2, factors.shape[0], i+1)

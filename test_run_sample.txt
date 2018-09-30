@@ -1,15 +1,32 @@
 debug = true
 shortname = sample_test
+methods = nmf
+
+
+# Preprocessing
+preprocess = gaussian_difference
+center_radius_start = 2
+center_radius_finish = 5
+center_square = 14
+gaussian_sigma_min = 1
+gaussian_sigma_max = 6
+direct_beam_mask_radius = 7
+
+
+# Files
 output_dir = ../../Data/Tmp
 test_data_source = sample_data
 # sample_file = D:/Dokumenter/MTNANO/Prosjektoppgave/SPED_data_GaAs_NW/gen/Julie_180510_SCN45_FIB_a_crop.hdf5
-sample_file = D:/Dokumenter/MTNANO/Prosjektoppgave/SPED_data_GaAs_NW/gen/Julie_180510_SCN45_FIB_c_crop_50,200-99,399_gaussian_difference_1_6.hdf5
+sample_file = D:/Dokumenter/MTNANO/Prosjektoppgave/SPED_data_GaAs_NW/gen/Julie_180510_SCN45_FIB_c_crop.hdf5
+# sample_file = D:/Dokumenter/MTNANO/Prosjektoppgave/SPED_data_GaAs_NW/gen/Julie_180510_SCN45_FIB_c_crop_50,200-99,399_gaussian_difference_1_6.hdf5
 # sample_file = D:/Dokumenter/MTNANO/Prosjektoppgave/SPED_data_GaAs_NW/raw/Julie_180510_SCN45_FIB_c.blo
 source_a_file = ../../Data/generated_patterns/DiffractionPattern_gen_01.png
 source_b_file = ../../Data/generated_patterns/DiffractionPattern_gen_02.png
-methods = nmf
+
 split_width = 25
 split_height = 50
+
+# Template matching
 zone_h = 1
 zone_k = 1
 zone_l = 0
@@ -19,4 +36,4 @@ beam_energy_keV = 200
 specimen_thickness = 80
 reciprocal_radius = 1
 target_pattern_dimension_pixels = 144
-angstrom_per_pixel = 12.8
+angstrom_per_pixel = 19.6
