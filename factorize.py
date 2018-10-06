@@ -55,10 +55,13 @@ def save_decomposition(output_dir, method_name, slice_x, slice_y, factors, loadi
                 method_name,
                 slice_x.start, slice_x.stop,
                 slice_y.start, slice_y.stop))
+    # TODO: Do I want to save these as floats?
     for i in range(factors.shape[0]):
-        Image.fromarray(factors[i]).save('{}_factors_{}.tiff'.format(output_prefix, i))
+        image_data = (factors[i] * (255 / np.max(factors[i]))).astype('uint8')
+        Image.fromarray(image_data).save('{}_factors_{}.tiff'.format(output_prefix, i))
     for i in range(loadings.shape[0]):
-        Image.fromarray(loadings[i]).save('{}_loadings_{}.tiff'.format(output_prefix, i))
+        image_data = (loadings[i] * (255 / np.max(loadings[i]))).astype('uint8')
+        Image.fromarray(image_data).save('{}_loadings_{}.tiff'.format(output_prefix, i))
 
 
 def save_combined_loadings(output_dir):
