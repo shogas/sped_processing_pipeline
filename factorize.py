@@ -1,6 +1,7 @@
 import glob
 import importlib
 import os
+import re
 import sys
 import time
 
@@ -10,6 +11,8 @@ import matplotlib
 matplotlib.use('Qt5Agg')
 import matplotlib.image as matplotimg
 import matplotlib.pyplot as plt
+
+from PIL import Image
 
 import pyxem as pxm
 from pyxem.utils.expt_utils import circular_mask
@@ -48,14 +51,44 @@ def generate_test_linear_noiseless(parameters):
 def save_decomposition(output_dir, method_name, slice_x, slice_y, factors, loadings):
     output_prefix = os.path.join(
             output_dir,
-            '{}_{}-{}_{}-{}_'.format(
+            '{}_{}-{}_{}-{}'.format(
                 method_name,
                 slice_x.start, slice_x.stop,
                 slice_y.start, slice_y.stop))
     for i in range(factors.shape[0]):
-        matplotimg.imsave('{}_factors_{}.tiff'.format(output_prefix, i), factors[i])
+        Image.fromarray(factors[i]).save('{}_factors_{}.tiff'.format(output_prefix, i))
     for i in range(loadings.shape[0]):
-        matplotimg.imsave('{}_loadings_{}.tiff'.format(output_prefix, i), loadings[i])
+        Image.fromarray(loadings[i]).save('{}_loadings_{}.tiff'.format(output_prefix, i))
+
+
+def save_combined_loadings(output_dir):
+    filename_regex = re.compile(r"""(?P<method_name>.*)_
+                                    (?P<x_start>\d*)-(?P<x_stop>\d*)_
+                                    (?P<y_start>\d*)-(?P<y_stop>\d*)_
+                                    loadings_(?P<factor_index>\d*)\.tiff""", re.X)
+    loadings_filenames = glob.iglob(os.path.join(output_dir, '*_loadings_*.tiff'))
+    loading_match_images = [filename_regex.match(loading_filename) for loading_filename in loadings_filenames]
+
+    width = 0
+    height = 0
+    for loading_image in loading_match_images:
+        width = max(width, int(loading_image.group('x_stop')))
+        height = max(height, int(loading_image.group('y_stop')))
+
+    merged_loadings = np.zeros((height, width, 3), 'float32')
+    for loading_image in loading_match_images:
+        x_start = int(loading_image.group('x_start'))
+        x_stop  = int(loading_image.group('x_stop'))
+        y_start = int(loading_image.group('y_start'))
+        y_stop  = int(loading_image.group('y_stop'))
+        factor_index = int(loading_image.group('factor_index'))
+        if factor_index >= 3:
+            factor_index = 0
+            print('WARNING: Too many factors for RGB output. Writing loading to red channel.')
+        data = np.asarray(Image.open(loading_image.group(0)))
+        merged_loadings[y_start:y_stop, x_start:x_stop, factor_index] = data
+    image_data = (merged_loadings * (255 / np.max(merged_loadings))).astype('uint8')
+    Image.fromarray(image_data).save(os.path.join(output_dir, 'loading_map.tiff'))
 
 
 def list_available_factorizers():
@@ -118,7 +151,7 @@ def preprocessor_gaussian_difference(data, parameters):
     signal.center_direct_beam(
             radius_start=parameters['center_radius_start'],
             radius_finish=parameters['center_radius_finish'],
-            square_width=perameters['center_square'],
+            square_width=parameters['center_square'],
             show_progressbar=False)
 
     signal = signal.remove_background(
@@ -182,7 +215,7 @@ def run_factorizations(parameters):
             current_data = np.array(diffraction_patterns[slice_y, slice_x])
             if 'preprocess' in parameters:
                 print('Preprocessing')
-                current_data = preprocessor(current_data)
+                current_data = preprocessor(current_data, parameters)
             for method_name in methods:
                 print('Running factorizer "{}"'.format(method_name))
                 start_time = time.perf_counter()
@@ -208,6 +241,7 @@ def run_factorizations(parameters):
                 save_decomposition(output_dir, method_name, slice_x, slice_y, factors, loadings)
 
     parameters_save(parameters, output_dir)
+    save_combined_loadings(output_dir)
 
 
 if __name__ == '__main__':
