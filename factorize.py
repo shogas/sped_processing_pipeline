@@ -19,6 +19,7 @@ from pyxem.utils.expt_utils import circular_mask
 
 
 from parameters import parameters_parse, parameters_save
+from common import result_image_file_info
 
 
 def generate_test_linear_noiseless(parameters):
@@ -26,24 +27,23 @@ def generate_test_linear_noiseless(parameters):
         if source_file not in parameters:
             print('No parameter {} given'.format(source_file))
             exit(1)
-    source_a = matplotimg.imread(parameters['source_a_file'])[:, :, 0]
-    source_b = matplotimg.imread(parameters['source_b_file'])[:, :, 0]
+    source_a = np.asarray(Image.open(parameters['source_a_file']))[:, :, 0] / 255
+    source_b = np.asarray(Image.open(parameters['source_b_file']))[:, :, 0] / 255
     factors = np.stack((source_a, source_b))
 
     width = parameters['sample_count_width']
     height = parameters['sample_count_height']
     loadings = np.empty((2, height, width))
-    one_third = width // 3
-    for y in range(height):
-        for x in range(one_third):
-            loadings[0, y, x] = 1.0
-            loadings[1, y, x] = 0.0
-        for x in range(one_third, 2*one_third):
-            loadings[0, y, x] = 1 - (x - one_third) / one_third
-            loadings[1, y, x] = 1 - loadings[0, y, x]
-        for x in range(2*one_third, width):
-            loadings[0, y, x] = 0.0
-            loadings[1, y, x] = 1.0
+    one_third = height // 3
+    for y in range(one_third):
+        loadings[0, y, :] = 1.0
+        loadings[1, y, :] = 0.0
+    for y in range(one_third, 2*one_third):
+        loadings[0, y, :] = 1 - (y - one_third) / one_third
+        loadings[1, y, :] = 1 - loadings[0, y, :]
+    for y in range(2*one_third, height):
+        loadings[0, y, :] = 0.0
+        loadings[1, y, :] = 1.0
 
     return factors, loadings
 
@@ -56,42 +56,33 @@ def save_decomposition(output_dir, method_name, slice_x, slice_y, factors, loadi
                 slice_x.start, slice_x.stop,
                 slice_y.start, slice_y.stop))
     # TODO: Do I want to save these as floats?
+    factors_scaling = 255.0 / np.max(factors)
+    loadings_scaling = 255.0 / np.max(loadings)
     for i in range(factors.shape[0]):
-        image_data = (factors[i] * (255 / np.max(factors[i]))).astype('uint8')
-        Image.fromarray(image_data).save('{}_factors_{}.tiff'.format(output_prefix, i))
+        Image.fromarray((factors[i] * factors_scaling).astype('uint8')).save('{}_factors_{}.tiff'.format(output_prefix, i))
     for i in range(loadings.shape[0]):
-        image_data = (loadings[i] * (255 / np.max(loadings[i]))).astype('uint8')
-        Image.fromarray(image_data).save('{}_loadings_{}.tiff'.format(output_prefix, i))
+        Image.fromarray((loadings[i] * loadings_scaling).astype('uint8')).save('{}_loadings_{}.tiff'.format(output_prefix, i))
 
 
 def save_combined_loadings(output_dir):
-    filename_regex = re.compile(r"""(?P<method_name>.*)_
-                                    (?P<x_start>\d*)-(?P<x_stop>\d*)_
-                                    (?P<y_start>\d*)-(?P<y_stop>\d*)_
-                                    loadings_(?P<factor_index>\d*)\.tiff""", re.X)
-    loadings_filenames = glob.iglob(os.path.join(output_dir, '*_loadings_*.tiff'))
-    loading_match_images = [filename_regex.match(loading_filename) for loading_filename in loadings_filenames]
+    loading_image_infos = result_image_file_info(output_dir, 'loadings')
 
-    width = 0
-    height = 0
-    for loading_image in loading_match_images:
-        width = max(width, int(loading_image.group('x_stop')))
-        height = max(height, int(loading_image.group('y_stop')))
+    first_image_infos = next(iter(loading_image_infos.values()))
+    width  = max([image_info['x_stop'] for image_info in first_image_infos])
+    height = max([image_info['y_stop'] for image_info in first_image_infos])
 
-    merged_loadings = np.zeros((height, width, 3), 'float32')
-    for loading_image in loading_match_images:
-        x_start = int(loading_image.group('x_start'))
-        x_stop  = int(loading_image.group('x_stop'))
-        y_start = int(loading_image.group('y_start'))
-        y_stop  = int(loading_image.group('y_stop'))
-        factor_index = int(loading_image.group('factor_index'))
-        if factor_index >= 3:
-            factor_index = 0
-            print('WARNING: Too many factors for RGB output. Writing loading to red channel.')
-        data = np.asarray(Image.open(loading_image.group(0)))
-        merged_loadings[y_start:y_stop, x_start:x_stop, factor_index] = data
-    image_data = (merged_loadings * (255 / np.max(merged_loadings))).astype('uint8')
-    Image.fromarray(image_data).save(os.path.join(output_dir, 'loading_map.tiff'))
+    for method_name, image_infos in loading_image_infos.items():
+        merged_loadings = np.zeros((height, width, 3), 'float32')
+        for image_info in image_infos:
+            factor_index = image_info['factor_index']
+            if factor_index >= 3:
+                factor_index = 0
+                print('WARNING: Too many factors for RGB output. Writing loading to red channel.')
+            merged_loadings[image_info['y_start']:image_info['y_stop'], image_info['x_start']:image_info['x_stop'], factor_index] = np.asarray(Image.open(image_info['filename']))
+
+        # TODO: Do I want to save these as floats?
+        image_data = (merged_loadings * (255 / np.max(merged_loadings))).astype('uint8')
+        Image.fromarray(image_data).save(os.path.join(output_dir, 'loading_map_{}.tiff'.format(method_name)))
 
 
 def list_available_factorizers():
@@ -122,14 +113,25 @@ def data_source_linear_ramp(output_dir):
     ground_truth_factors, ground_truth_loadings = generate_test_linear_noiseless(parameters)
 
     # TODO(simonhog): numpy probably has a way of doing this without the reshape
-    factor_count, pattern_width, pattern_height = ground_truth_factors.shape
-    factor_count, sample_width, sample_height = ground_truth_loadings.shape
+    factor_count, pattern_height, pattern_width = ground_truth_factors.shape
+    loadings_count, sample_height, sample_width = ground_truth_loadings.shape
     factors = ground_truth_factors.reshape((factor_count, -1))
     loadings = ground_truth_loadings.reshape((factor_count, -1))
-    save_decomposition(output_dir, 'ground_truth', ground_truth_factors, ground_truth_loadings)
+
+    split_width = parameters['split_width'] if 'split_width' in parameters else sample_width
+    split_height = parameters['split_height'] if 'split_height' in parameters else sample_height
+
+    # TODO(simonhog): Might want to align the splits to data chunk sizes (diffraction_patterns.chunks)
+    for split_start_y in range(0, sample_height, split_height):
+        split_end_y = min(split_start_y + split_height, sample_height)
+        slice_y = slice(split_start_y, split_end_y)
+        for split_start_x in range(0, sample_width, split_width):
+            split_end_x = min(split_start_x + split_width, sample_width)
+            slice_x = slice(split_start_x, split_end_x)
+            save_decomposition(output_dir, 'ground_truth', slice_x, slice_y, ground_truth_factors, ground_truth_loadings[:, slice_y, slice_x])
 
     diffraction_patterns = np.matmul(loadings.T, factors)
-    diffraction_patterns = diffraction_patterns.reshape((sample_width, sample_height, pattern_width, pattern_height))
+    diffraction_patterns = diffraction_patterns.reshape((sample_height, sample_width, pattern_height, pattern_width))
     return diffraction_patterns
 
 
