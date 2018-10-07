@@ -1,6 +1,6 @@
 debug = true
 shortname = sample_test
-methods = nmf
+methods = nmf, nmf_online
 
 
 # Preprocessing
@@ -23,8 +23,8 @@ sample_file = D:/Dokumenter/MTNANO/Prosjektoppgave/SPED_data_GaAs_NW/gen/Julie_1
 source_a_file = ../../Data/generated_patterns/DiffractionPattern_gen_01.png
 source_b_file = ../../Data/generated_patterns/DiffractionPattern_gen_02.png
 
-split_width = 25
-split_height = 50
+# split_width = 25
+# split_height = 50
 
 # Template matching
 zone_h = 1

@@ -220,7 +220,15 @@ def run_factorizations(parameters):
             current_data = np.array(diffraction_patterns[slice_y, slice_x])
             if 'preprocess' in parameters:
                 print('Preprocessing')
+                start_time = time.perf_counter()
+
                 current_data = preprocessor(current_data, parameters)
+
+                end_time = time.perf_counter()
+                elapsed_time = end_time - start_time
+                print('    Elapsed: {}'.format(elapsed_time))
+                elapsed_key = '__elapsed_time_preprocessing'
+                parameters[elapsed_key] = elapsed_time + (parameters[elapsed_key] if elapsed_key in parameters else 0)
             for method_name in methods:
                 print('Running factorizer "{}"'.format(method_name))
                 start_time = time.perf_counter()

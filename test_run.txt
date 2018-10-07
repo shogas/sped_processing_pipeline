@@ -1,11 +1,11 @@
 debug = true
 shortname = testing
 output_dir = ../../Data/Tmp
-sample_count_width = 30
-sample_count_height = 5
+sample_count_width = 20
+sample_count_height = 50
+split_width = 10
+split_height = 25
 test_data_source = linear_ramp
 source_a_file = ../../Data/generated_patterns/DiffractionPattern_gen_01.png
 source_b_file = ../../Data/generated_patterns/DiffractionPattern_gen_02.png
-methods = debug
-split_width = 5
-split_height = 3
+methods = nmf
