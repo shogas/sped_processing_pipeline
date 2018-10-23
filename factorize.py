@@ -16,10 +16,20 @@ from PIL import Image
 
 import pyxem as pxm
 from pyxem.utils.expt_utils import circular_mask
+from pyxem.generators.indexation_generator import IndexationGenerator
 
 
 from parameters import parameters_parse, parameters_save
 from common import result_image_file_info
+from utils.template_matching import generate_diffraction_library, get_orientation_map
+
+
+import warnings
+# Silence some future warnings and user warnings (float64 -> uint8)
+# in skimage when calling remove_background with h-dome (below)
+# Should really be fixed elsewhere.
+warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.simplefilter(action='ignore', category=UserWarning)
 
 
 def generate_test_linear_noiseless(parameters):
@@ -48,7 +58,7 @@ def generate_test_linear_noiseless(parameters):
     return factors, loadings
 
 
-def save_decomposition(output_dir, method_name, slice_x, slice_y, factors, loadings):
+def save_decomposition(output_dir, method_name, slice_x, slice_y, factors, loadings, factor_indices):
     output_prefix = os.path.join(
             output_dir,
             '{}_{}-{}_{}-{}'.format(
@@ -58,10 +68,10 @@ def save_decomposition(output_dir, method_name, slice_x, slice_y, factors, loadi
     # TODO: Do I want to save these as floats?
     factors_scaling = 255.0 / np.max(factors)
     loadings_scaling = 255.0 / np.max(loadings)
-    for i in range(factors.shape[0]):
-        Image.fromarray((factors[i] * factors_scaling).astype('uint8')).save('{}_factors_{}.tiff'.format(output_prefix, i))
-    for i in range(loadings.shape[0]):
-        Image.fromarray((loadings[i] * loadings_scaling).astype('uint8')).save('{}_loadings_{}.tiff'.format(output_prefix, i))
+    for i, factor in zip(factor_indices, factors):
+        Image.fromarray((factor * factors_scaling).astype('uint8')).save('{}_factors_{}.tiff'.format(output_prefix, i))
+    for i, loading in zip(factor_indices, loadings):
+        Image.fromarray((loading * loadings_scaling).astype('uint8')).save('{}_loadings_{}.tiff'.format(output_prefix, i))
 
 
 def save_combined_loadings(output_dir):
@@ -128,7 +138,7 @@ def data_source_linear_ramp(output_dir):
         for split_start_x in range(0, sample_width, split_width):
             split_end_x = min(split_start_x + split_width, sample_width)
             slice_x = slice(split_start_x, split_end_x)
-            save_decomposition(output_dir, 'ground_truth', slice_x, slice_y, ground_truth_factors, ground_truth_loadings[:, slice_y, slice_x])
+            save_decomposition(output_dir, 'ground_truth', slice_x, slice_y, ground_truth_factors, ground_truth_loadings[:, slice_y, slice_x], range(factor_count))
 
     diffraction_patterns = np.matmul(loadings.T, factors)
     diffraction_patterns = diffraction_patterns.reshape((sample_height, sample_width, pattern_height, pattern_width))
@@ -140,6 +150,7 @@ def data_source_sample_data(output_dir):
     sample = pxm.load(sample_filename, lazy=True)
     # TODO(simonhog): Parameterize data type?
     sample.change_dtype('float32')
+    sample.data *= 1/sample.data.max()
     return sample.data
 
 
@@ -153,11 +164,11 @@ def preprocessor_gaussian_difference(data, parameters):
     sig_width = signal.axes_manager.signal_shape[0]
     sig_height = signal.axes_manager.signal_shape[1]
 
-    signal.center_direct_beam(
-            radius_start=parameters['center_radius_start'],
-            radius_finish=parameters['center_radius_finish'],
-            square_width=parameters['center_square'],
-            show_progressbar=False)
+    # signal.center_direct_beam(
+            # radius_start=parameters['center_radius_start'],
+            # radius_finish=parameters['center_radius_finish'],
+            # square_width=parameters['center_square'],
+            # show_progressbar=False)
 
     signal = signal.remove_background(
             'gaussian_difference',
@@ -167,15 +178,27 @@ def preprocessor_gaussian_difference(data, parameters):
     signal.data /= signal.data.max()
 
     # TODO(simonhog): Could cache beam mask between calls
-    sig_center = (sig_width - 1) / 2, (sig_height - 1) / 2
-    direct_beam_mask = circular_mask(shape=(sig_width, sig_height),
-                                     radius=parameters['direct_beam_mask_radius'],
-                                     center=sig_center)
-    np.invert(direct_beam_mask, out=direct_beam_mask)
-    signal.data *= direct_beam_mask
+    # sig_center = (sig_width - 1) / 2, (sig_height - 1) / 2
+    # direct_beam_mask = circular_mask(shape=(sig_width, sig_height),
+                                     # radius=parameters['direct_beam_mask_radius'],
+                                     # center=sig_center)
+    # np.invert(direct_beam_mask, out=direct_beam_mask)
+    # signal.data *= direct_beam_mask
 
     return signal.data
 
+
+def preprocessor_hdome(data, parameters):
+    signal = pxm.ElectronDiffraction(data)
+    print(signal.data.max())
+    signal.apply_affine_transformation(np.array([
+        [0.95, 0, 0],
+        [0, 1, 0],
+        [0, 0, 1]
+        ]))
+    signal = signal.remove_background('h-dome', h=0.55)
+    signal.data *= 1/signal.data.max()
+    return signal.data
 
 def preprocessor_name(preprocessor):
     return 'preprocessor_' + preprocessor
@@ -208,6 +231,10 @@ def run_factorizations(parameters):
     split_width = parameters['split_width'] if 'split_width' in parameters else full_width
     split_height = parameters['split_height'] if 'split_height' in parameters else full_height
 
+    phase_names = ['ZB', 'WZ']
+    diffraction_library = generate_diffraction_library(parameters, phase_names)
+    found_phases = []
+
     # TODO(simonhog): Might want to align the splits to data chunk sizes (diffraction_patterns.chunks)
     for split_start_y in range(0, full_height, split_height):
         split_end_y = min(split_start_y + split_height, full_height)
@@ -238,11 +265,28 @@ def run_factorizations(parameters):
                 # TODO(simonhog): 
                 factors, loadings = factorizer(current_data.copy(), parameters)
 
+                dp = pxm.ElectronDiffraction([factors])
+                pattern_indexer = IndexationGenerator(dp, diffraction_library)
+                indexation_results = pattern_indexer.correlate(n_largest=4, keys=phase_names)
+                crystal_mapping = indexation_results.get_crystallographic_map()
+                phases = crystal_mapping.get_phase_map().data.ravel()
+                orientations = get_orientation_map(crystal_mapping).data.ravel()
+                factor_indices = []
+                for phase, orientation in zip(phases, orientations):
+                    if (phase, orientation) in found_phases:
+                        factor_indices.append(found_phases.index((phase, orientation)))
+                    else:
+                        factor_indices.append(len(found_phases))
+                        found_phases.append((phase, orientation))
+
                 end_time = time.perf_counter()
                 elapsed_time = end_time - start_time
                 print('    Elapsed: {}'.format(elapsed_time))
                 elapsed_key = '__elapsed_time_{}'.format(method_name)
                 parameters[elapsed_key] = elapsed_time + (parameters[elapsed_key] if elapsed_key in parameters else 0)
+                save_decomposition(output_dir, method_name, slice_x, slice_y, factors, loadings, factor_indices)
+
+
                 if False:
                     for i in range(factors.shape[0]):
                         plt.subplot(2, factors.shape[0], i+1)
@@ -251,7 +295,6 @@ def run_factorizations(parameters):
                         plt.subplot(2, factors.shape[0], factors.shape[0] + i + 1)
                         plt.imshow(loadings[i])
                     plt.show()
-                save_decomposition(output_dir, method_name, slice_x, slice_y, factors, loadings)
 
     parameters_save(parameters, output_dir)
     save_combined_loadings(output_dir)
