@@ -18,6 +18,13 @@ from transforms3d.euler import euler2mat
 from transforms3d.euler import mat2euler
 
 
+
+import matplotlib
+matplotlib.use('Qt5Agg')
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+
 def classify(diffraction_library, image, phase_index_to_name):
     # TODO(simonhog): Seems like IndexationGenerator can do multiple images at once? (-> better use of the crystal map)
     diffraction_pattern = ElectronDiffraction([[image]])
@@ -68,34 +75,107 @@ def angle_between_directions(structure,
 
     return math.acos(L/(I1*I2))
 
-def generate_rotation_list(h, k, l, max_theta, resolution):
+def generate_rotation_list_euler(structure, h, k, l, max_theta, resolution):
+    rotation_list = generate_rotation_list(structure, h, k, l, max_theta, resolution)
+    return np.rad2deg([mat2euler(rotation_matrix, 'rzxz') for rotation_matrix in rotation_list])
+
+
+def generate_rotation_list(structure, h, k, l, max_theta, resolution):
     # NOTE(simonhog): This is copy-pasted from the sped_nn_recognition codebase
     #                 Should be moved to a common library, the projects should
     #                 be combined, or this utility integrated in pyxem.
     # NOTE(simonhog): Don't edit this function here, instead do it in the other codebase...
     # Assuming cubic
-    angle = math.acos((h*0 + k*0 + l*1) / math.sqrt((h**2 + k**2 + l**2)*(0**2 + 0**2 + 1**2)))
+    # TODO(simonhog): Symmetry considerations
+
+    zone_to_rotation = np.identity(3)
+    lattice_to_zone = np.identity(3)
+
+    angle = angle_between_directions(structure, (0, 0, 1), (h, k, l))
     axis = np.cross(np.array([0, 0, 1]), np.array([h, k, l]))
     if np.count_nonzero(axis) == 0:
         axis = np.array([0, 0, 1])
 
-    lattice_to_zone = np.identity(4)
-    lattice_to_zone[0:3, 0:3] = axangle2mat(axis, angle)
-    zone_to_rotation = np.identity(4)
+    lattice_to_zone = axangle2mat(axis, angle)
 
     # This generates rotations around the given axis, with a denser sampling close to the axis
-    resolution = np.deg2rad(resolution)
-    min_psi = -np.pi
+    min_psi = -np.pi  # TODO(simonhog): Can probably be 0, symmetry always at least 2?
     max_psi = np.pi
-    rotations = np.empty((math.ceil(max_theta / resolution), math.ceil((max_psi - min_psi) / resolution), 3))
-    for i, theta in enumerate(np.arange(0, max_theta, resolution)):
-        theta_rot = euler2mat(0, theta, 0, 'rzxz')
-        for j, psi in enumerate(np.arange(min_psi, max_psi, resolution)):
-            zone_to_rotation[0:3, 0:3] = np.matmul(theta_rot, euler2mat(0, 0, psi, 'rzxz'))
-            lattice_to_rotation = np.matmul(lattice_to_zone, zone_to_rotation)
-            rotations[i, j] = np.rad2deg(mat2euler(lattice_to_rotation, 'rzxz'))
+    min_phi = 0
+    max_phi = np.pi
+    theta_count = math.ceil(max_theta / resolution)
+    psi_count = math.ceil((max_psi - min_psi) / resolution)
+    phi_count = math.ceil((max_phi - min_phi) / resolution)
+    rotations = np.empty((theta_count, psi_count, phi_count, 3, 3))
+    print(rotations.shape)
+    exit(0)
+    for i, local_theta in enumerate(np.linspace(0, max_theta, theta_count)):
+        for j, local_psi in enumerate(np.linspace(min_psi, max_psi, psi_count)):
+            for k, local_phi in enumerate(np.linspace(min_phi, max_phi, phi_count)):
+                # TODO: Check that this is the correct order. Swap phi/psi?
+                zone_to_rotation = euler2mat(local_phi, local_theta, local_psi, 'sxyz')
+                lattice_to_rotation = np.matmul(lattice_to_zone, zone_to_rotation)
+                rotations[i, j, k] = lattice_to_rotation
 
-    return rotations
+    return rotations.reshape(-1, 3, 3)
+
+
+def generate_fibonacci_spiral_euler(structure, h, k, l, max_theta, resolution):
+    rotation_list = generate_fibonacci_spiral(structure, h, k, l, max_theta, resolution)
+    return np.rad2deg([mat2euler(rotation_matrix, 'rzxz') for rotation_matrix in rotation_list])
+
+
+def generate_fibonacci_spiral(structure, h, k, l, max_theta, resolution):
+    # Vogel's method -> disk. Modify -> sphere surface
+    zone_to_rotation = np.identity(3)
+    lattice_to_zone = np.identity(3)
+
+    angle = angle_between_directions(structure, (0, 0, 1), (h, k, l))
+    axis = np.cross(np.array([0, 0, 1]), np.array([h, k, l]))
+    if np.count_nonzero(axis) == 0:
+        axis = np.array([0, 0, 1])
+
+    lattice_to_zone = axangle2mat(axis, angle)
+
+    n = 50
+
+    golden_angle = np.pi * (3 - np.sqrt(5))
+    theta = golden_angle * np.arange(n)
+    z = np.linspace(1, np.cos(max_theta), n)
+
+    radius = np.sqrt(1 - z**2)
+
+    points = np.zeros((n, 3))
+    points[:, 0] = radius * np.cos(theta)
+    points[:, 1] = radius * np.sin(theta)
+    points[:, 2] = z
+
+    phi_min = 0
+    phi_max = np.pi
+    phi_count = math.ceil((phi_max - phi_min) / resolution)
+    rotations = np.empty((n, phi_count, 3, 3))
+    for i, point in enumerate(points):
+        # Simplifications to cos angle formula since one of the directions is (0, 0, 1)
+        point_angle = math.acos(point[2]/np.linalg.norm(point))
+        point_axis = np.cross(np.array([0, 0, 1]), np.array([h, k, l]))
+        if np.count_nonzero(point_axis) == 0:
+            point_axis = np.array([0, 0, 1])
+        point_rotation = axangle2mat(point_axis, point_angle)
+        for k, local_phi in enumerate(np.linspace(phi_min, phi_max, phi_count)):
+            phi_rotation = euler2mat(local_phi, 0, 0, 'rzxz')
+            zone_to_rotation = np.matmul(point_rotation, phi_rotation)
+            rotations[i, k] = np.matmul(lattice_to_zone, zone_to_rotation)
+
+    return rotations.reshape(-1, 3, 3)
+
+    if False:
+        fig = plt.figure(1, figsize=plt.figaspect(1)*2)
+        ax = fig.gca(projection='3d')
+        ax.scatter(points[:, 0], points[:, 1], points[:, 2], c=theta, cmap='viridis')
+        ax.set_xlim3d(-1, 1)
+        ax.set_ylim3d(-1, 1)
+        ax.set_zlim3d(-1, 1)
+        plt.show()
 
 
 def generate_complete_rotation_list_euler(structure, corner_a, corner_b, corner_c, resolution, psi_angles):
@@ -280,7 +360,13 @@ def plot_debug(parameters):
 
 # TODO(simonhog): A lot of this comes from the sped_nn_recognition codebase
 def generate_diffraction_library(parameters, phase_names):
-    cache_file = 'C:/Users/simho/OneDrive/Skydok/MTNANO/Prosjektoppgave/Data/Tmp/library_cache.pickle'
+    list_type = 'fib'
+    if list_type == 'complete':
+        cache_file = 'C:/Users/simho/OneDrive/Skydok/MTNANO/Prosjektoppgave/Data/Tmp/library_cache.pickle'
+    elif list_type == 'dir':
+        cache_file = 'C:/Users/simho/OneDrive/Skydok/MTNANO/Prosjektoppgave/Data/Tmp/library_cache_directional.pickle'
+    elif list_type == 'fib':
+        cache_file = 'C:/Users/simho/OneDrive/Skydok/MTNANO/Prosjektoppgave/Data/Tmp/library_cache_fib.pickle'
     cache = os.path.exists(cache_file)
     if cache:
         return load_DiffractionLibrary(cache_file, safety=True)
@@ -294,29 +380,35 @@ def generate_diffraction_library(parameters, phase_names):
     target_pattern_dimension_pixels = parameters['target_pattern_dimension_pixels']
     reciprocal_angstrom_per_pixel = parameters['reciprocal_angstrom_per_pixel']
     # TODO(simonhog): Parameterize
-    rotation_list_resolution = np.deg2rad(1)
+    rotation_list_resolution = np.deg2rad(2)
+    max_theta = np.deg2rad(5)
     # TODO(simonhog): Generalize to use (arrays) from parameter file
     # TODO(simonhog): Figure out how diffpy actually want absolute paths on Windows
     structure_zb = diffpy.structure.loadStructure('file:///' + parameters['structure_zb_file'])
     structure_wz = diffpy.structure.loadStructure('file:///' + parameters['structure_wz_file'])
 
-    rotation_list_ZB = generate_complete_rotation_list_euler(
-            structure_zb,
-            (0, 0, 1),
-            (1, 0, 1),
-            (1, 1, 1),
-            rotation_list_resolution,
-            np.deg2rad((84.6, 15)))  # TODO(simonhog): Parameterize
-    rotation_list_WZ = generate_complete_rotation_list_euler(
-            structure_zb, # TODO(simonhog): Is this correct when I convert the directions also?
-            direction_to_cartesian(structure_wz, uvtw_to_uvw(0, 0, 0, 1)),
-            direction_to_cartesian(structure_wz, uvtw_to_uvw(1, 1, -2, 0)),
-            direction_to_cartesian(structure_wz, uvtw_to_uvw(1, 0, -1, 0)),
-            rotation_list_resolution,
-            np.deg2rad((111,)))  # TODO(simonhog): Parameterize
+    if list_type == 'complete':
+        rotation_list_ZB = generate_complete_rotation_list_euler(
+                structure_zb,
+                (0, 0, 1),
+                (1, 0, 1),
+                (1, 1, 1),
+                rotation_list_resolution,
+                np.deg2rad((84.6, 15)))  # TODO(simonhog): Parameterize
+        rotation_list_WZ = generate_complete_rotation_list_euler(
+                structure_zb, # TODO(simonhog): Is this correct when I convert the directions also?
+                direction_to_cartesian(structure_wz, uvtw_to_uvw(0, 0, 0, 1)),
+                direction_to_cartesian(structure_wz, uvtw_to_uvw(1, 1, -2, 0)),
+                direction_to_cartesian(structure_wz, uvtw_to_uvw(1, 0, -1, 0)),
+                rotation_list_resolution,
+                np.deg2rad((111,)))  # TODO(simonhog): Parameterize
+    elif list_type == 'dir':
+        rotation_list_ZB = generate_rotation_list_euler(structure_zb, h, k, l, max_theta, rotation_list_resolution)
+        rotation_list_WZ = generate_rotation_list_euler(structure_wz, h, k, l, max_theta, rotation_list_resolution)
+    elif list_type == 'fib':
+        rotation_list_ZB = generate_fibonacci_spiral_euler(structure_zb, h, k, l, max_theta, rotation_list_resolution)
+        rotation_list_WZ = generate_fibonacci_spiral_euler(structure_wz, h, k, l, max_theta, rotation_list_resolution)
 
-    # for r in rotation_list_WZ: print(r)
-    # exit(0)
 
     # rotation_list_ZB = [(90, 44.5, -75), (0, 1, 0), (0, 2, 0), (0, 3, 0), (0, 4, 0), (0, 5, 0)]
     # rotation_list_WZ = [(0.0 , 0.0 , -11.12433428), (0, 1, 0), (0, 2, 0), (0, 3, 0), (0, 4, 0), (0, 5, 0)]

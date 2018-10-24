@@ -265,7 +265,6 @@ def run_factorizations(parameters):
 
                 factorizer = get_factorizer(method_name)
 
-                # TODO(simonhog): 
                 factors, loadings = factorizer(current_data.copy(), parameters)
                 factor_indices = []
 
@@ -293,7 +292,7 @@ def run_factorizations(parameters):
                             factor_indices.append(len(found_factors))
                             found_factors.append(factor)
 
-                elif False:
+                elif True:
                     dp = pxm.ElectronDiffraction([factors])
                     pattern_indexer = IndexationGenerator(dp, diffraction_library)
                     indexation_results = pattern_indexer.correlate(n_largest=4, keys=phase_names)
@@ -306,6 +305,7 @@ def run_factorizations(parameters):
                         else:
                             factor_indices.append(len(found_phases))
                             found_phases.append((phase, orientation))
+                    print(factor_indices)
                 else:
                     factor_indices = range(len(factors))
 
