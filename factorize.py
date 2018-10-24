@@ -190,13 +190,12 @@ def preprocessor_gaussian_difference(data, parameters):
 
 def preprocessor_hdome(data, parameters):
     signal = pxm.ElectronDiffraction(data)
-    print(signal.data.max())
     signal.apply_affine_transformation(np.array([
         [0.95, 0, 0],
         [0, 1, 0],
         [0, 0, 1]
-        ]))
-    signal = signal.remove_background('h-dome', h=0.55)
+        ]), show_progressbar=False)
+    signal = signal.remove_background('h-dome', h=0.55, show_progressbar=False)
     signal.data *= 1/signal.data.max()
     return signal.data
 
@@ -234,6 +233,7 @@ def run_factorizations(parameters):
     phase_names = ['ZB', 'WZ']
     diffraction_library = generate_diffraction_library(parameters, phase_names)
     found_phases = []
+    found_factors = []
 
     # TODO(simonhog): Might want to align the splits to data chunk sizes (diffraction_patterns.chunks)
     for split_start_y in range(0, full_height, split_height):
@@ -243,7 +243,10 @@ def run_factorizations(parameters):
             split_end_x = min(split_start_x + split_width, full_width)
             slice_x = slice(split_start_x, split_end_x)
             print('\n\n====================================')
-            print('Starting work on slice ({}:{}, {}:{})\n'.format(split_start_x, split_end_x, split_start_y, split_end_y))
+            print('Starting work on slice ({}:{}, {}:{}) of ({} {})\n'.format(
+                split_start_x, split_end_x,
+                split_start_y, split_end_y,
+                full_width, full_height))
             current_data = np.array(diffraction_patterns[slice_y, slice_x])
             if 'preprocess' in parameters:
                 print('Preprocessing')
@@ -264,20 +267,47 @@ def run_factorizations(parameters):
 
                 # TODO(simonhog): 
                 factors, loadings = factorizer(current_data.copy(), parameters)
-
-                dp = pxm.ElectronDiffraction([factors])
-                pattern_indexer = IndexationGenerator(dp, diffraction_library)
-                indexation_results = pattern_indexer.correlate(n_largest=4, keys=phase_names)
-                crystal_mapping = indexation_results.get_crystallographic_map()
-                phases = crystal_mapping.get_phase_map().data.ravel()
-                orientations = get_orientation_map(crystal_mapping).data.ravel()
                 factor_indices = []
-                for phase, orientation in zip(phases, orientations):
-                    if (phase, orientation) in found_phases:
-                        factor_indices.append(found_phases.index((phase, orientation)))
-                    else:
-                        factor_indices.append(len(found_phases))
-                        found_phases.append((phase, orientation))
+
+
+                if False:
+                    def image_difference(factor_a, factor_b):
+                        return np.sum((factor_a - factor_b)**2)
+
+                    threshold = 10
+                    for factor in factors:
+                        factor *= 1/factor.max()
+                        if (len(found_factors) > 0):
+                            diffs = [image_difference(factor, found_factor) for found_factor in found_factors]
+                            print(diffs)
+                            best_diff_index = np.argmin(diffs)
+                            best_diff = diffs[best_diff_index]
+                            if (best_diff < threshold):
+                                print('Matched phase {} (difference {})'.format(best_diff_index, best_diff))
+                                factor_indices.append(best_diff_index)
+                            else:
+                                print('New phase {} (difference {})'.format(best_diff_index, best_diff))
+                                factor_indices.append(len(found_factors))
+                                found_factors.append(factor)
+                        else:
+                            factor_indices.append(len(found_factors))
+                            found_factors.append(factor)
+
+                elif False:
+                    dp = pxm.ElectronDiffraction([factors])
+                    pattern_indexer = IndexationGenerator(dp, diffraction_library)
+                    indexation_results = pattern_indexer.correlate(n_largest=4, keys=phase_names)
+                    crystal_mapping = indexation_results.get_crystallographic_map()
+                    phases = crystal_mapping.get_phase_map().data.ravel()
+                    orientations = get_orientation_map(crystal_mapping).data.ravel()
+                    for phase, orientation in zip(phases, orientations):
+                        if (phase, orientation) in found_phases:
+                            factor_indices.append(found_phases.index((phase, orientation)))
+                        else:
+                            factor_indices.append(len(found_phases))
+                            found_phases.append((phase, orientation))
+                else:
+                    factor_indices = range(len(factors))
 
                 end_time = time.perf_counter()
                 elapsed_time = end_time - start_time

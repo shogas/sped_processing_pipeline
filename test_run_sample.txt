@@ -21,12 +21,13 @@ test_data_source = sample_data
 sample_file = D:/Dokumenter/MTNANO/Prosjektoppgave/SPED_data_GaAs_NW/gen/Julie_180510_SCN45_FIB_a_crop.hdf5
 # sample_file = D:/Dokumenter/MTNANO/Prosjektoppgave/SPED_data_GaAs_NW/gen/Julie_180510_SCN45_FIB_c_crop.hdf5
 # sample_file = D:/Dokumenter/MTNANO/Prosjektoppgave/SPED_data_GaAs_NW/gen/Julie_180510_SCN45_FIB_c_crop_50,200-99,399_gaussian_difference_1_6.hdf5
+# sample_file = D:/Dokumenter/MTNANO/Prosjektoppgave/SPED_data_GaAs_NW/raw/Julie_180510_SCN45_FIB_a.blo
 # sample_file = D:/Dokumenter/MTNANO/Prosjektoppgave/SPED_data_GaAs_NW/raw/Julie_180510_SCN45_FIB_c.blo
 source_a_file = ../../Data/generated_patterns/DiffractionPattern_gen_01.png
 source_b_file = ../../Data/generated_patterns/DiffractionPattern_gen_02.png
 
-split_width = 20
-split_height = 40
+split_width = 50
+split_height = 50
 
 # Template matching
 zone_h = 1
