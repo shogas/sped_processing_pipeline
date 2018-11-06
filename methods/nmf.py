@@ -25,5 +25,5 @@ def factorize(diffraction_patterns, parameters):
     scale = loadings.max()
     factors *= scale
     loadings /= scale
-    return factors, loadings
+    return (factors, loadings), 'decomposition'
 

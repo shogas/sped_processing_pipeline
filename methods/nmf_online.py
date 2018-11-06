@@ -28,4 +28,4 @@ def factorize(diffraction_patterns, parameters):
     factors *= scale
     loadings /= scale
     # TODO(simonhog): Handle dask arrays further down the pipeline. Probably move everything to use it? Test performance overhead.
-    return np.asarray(factors), np.asarray(loadings)
+    return (np.asarray(factors), np.asarray(loadings)), 'decomposition'

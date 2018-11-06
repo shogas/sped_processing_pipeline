@@ -13,6 +13,7 @@ import matplotlib.image as matplotimg
 import matplotlib.pyplot as plt
 
 from PIL import Image
+import pickle
 
 import pyxem as pxm
 from pyxem.utils.expt_utils import circular_mask
@@ -65,12 +66,23 @@ def save_decomposition(output_dir, method_name, slice_x, slice_y, factors, loadi
                 slice_x.start, slice_x.stop,
                 slice_y.start, slice_y.stop))
     # TODO: Do I want to save these as floats?
-    factors_scaling = 255.0 / np.max(factors)
-    loadings_scaling = 255.0 / np.max(loadings)
-    for i, factor in zip(factor_indices, factors):
+    factors_scaling = 255.0 / (np.max(factors) or 1)
+    loadings_scaling = 255.0 / (np.max(loadings) or 1)
+    for i, factor in enumerate(factors):
         Image.fromarray((factor * factors_scaling).astype('uint8')).save('{}_factors_{}.tiff'.format(output_prefix, i))
-    for i, loading in zip(factor_indices, loadings):
+    for i, loading in enumerate(loadings):
         Image.fromarray((loading * loadings_scaling).astype('uint8')).save('{}_loadings_{}.tiff'.format(output_prefix, i))
+
+
+def save_object(output_dir, method_name, slice_x, slice_y, data):
+    output_filename = os.path.join(
+            output_dir,
+            '{}_{}-{}_{}-{}.pickle'.format(
+                method_name,
+                slice_x.start, slice_x.stop,
+                slice_y.start, slice_y.stop))
+    with open(output_filename, 'wb') as f:
+        pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 def save_combined_loadings(output_dir):
@@ -259,7 +271,7 @@ def run_factorizations(parameters):
 
                 factorizer = get_factorizer(method_name)
 
-                factors, loadings = factorizer(current_data.copy(), parameters)
+                save_data, save_method = factorizer(current_data.copy(), parameters)
                 factor_indices = []
 
                 end_time = time.perf_counter()
@@ -267,7 +279,10 @@ def run_factorizations(parameters):
                 print('    Elapsed: {}'.format(elapsed_time))
                 elapsed_key = '__elapsed_time_{}'.format(method_name)
                 parameters[elapsed_key] = elapsed_time + (parameters[elapsed_key] if elapsed_key in parameters else 0)
-                save_decomposition(output_dir, method_name, slice_x, slice_y, factors, loadings, factor_indices)
+                if save_method == 'object':
+                    save_object(output_dir, method_name, slice_x, slice_y, save_data)
+                else:
+                    save_decomposition(output_dir, method_name, slice_x, slice_y, *save_data)
 
 
                 if False:

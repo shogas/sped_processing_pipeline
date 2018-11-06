@@ -12,5 +12,5 @@ def factorize(diffraction_patterns, parameters):
     factors = dps.get_decomposition_factors().data
     loadings = dps.get_decomposition_loadings().data
     # TODO(simonhog): Return factors from highest index with highest loading to get real-space values
-    return factors, loadings
+    return (factors, loadings), 'decomposition'
 

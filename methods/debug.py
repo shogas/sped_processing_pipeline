@@ -12,4 +12,4 @@ def factorize(diffraction_patterns, parameters):
     # dps.plot()
     # plt.show()
     print("methods/debug")
-    return np.array([0]), np.array([0])
+    return (np.array([0]), np.array([0])), 'decomposition'

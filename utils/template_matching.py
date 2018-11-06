@@ -19,11 +19,6 @@ from transforms3d.euler import mat2euler
 
 
 
-import matplotlib
-matplotlib.use('Qt5Agg')
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-
 
 def classify(diffraction_library, image, phase_index_to_name):
     # TODO(simonhog): Seems like IndexationGenerator can do multiple images at once? (-> better use of the crystal map)
@@ -169,6 +164,8 @@ def generate_fibonacci_spiral(structure, h, k, l, max_theta, resolution):
     return rotations.reshape(-1, 3, 3)
 
     if False:
+        import matplotlib.pyplot as plt
+        from mpl_toolkits.mplot3d import Axes3D
         fig = plt.figure(1, figsize=plt.figaspect(1)*2)
         ax = fig.gca(projection='3d')
         ax.scatter(points[:, 0], points[:, 1], points[:, 2], c=theta, cmap='viridis')
@@ -359,8 +356,7 @@ def plot_debug(parameters):
 
 
 # TODO(simonhog): A lot of this comes from the sped_nn_recognition codebase
-def generate_diffraction_library(parameters, phase_names):
-    list_type = 'fib'
+def generate_diffraction_library(parameters, phase_names, list_type='complete'):
     if list_type == 'complete':
         cache_file = 'C:/Users/simho/OneDrive/Skydok/MTNANO/Prosjektoppgave/Data/Tmp/library_cache.pickle'
     elif list_type == 'dir':
@@ -416,6 +412,11 @@ def generate_diffraction_library(parameters, phase_names):
             phase_names,
             [structure_zb, structure_wz],
             [rotation_list_ZB, rotation_list_WZ])
+    # phase_names = phase_names[0]
+    # structure_library = StructureLibrary(
+            # phase_names,
+            # [structure_zb],
+            # [rotation_list_ZB])
 
 
     half_pattern_size = target_pattern_dimension_pixels // 2
@@ -430,6 +431,7 @@ def generate_diffraction_library(parameters, phase_names):
             with_direct_beam=False)
     diffraction_library.pickle_library(cache_file)
     return diffraction_library
+
 
 # TODO(simonhog): Temporary, waiting for https://github.com/pyxem/pyxem/pull/293
 def _euler2axangle_signal(euler):
@@ -447,7 +449,7 @@ def get_orientation_map(crystal_map):
         navigation position.
     """
     eulers = crystal_map.isig[1:4]
-    eulers.map(_euler2axangle_signal, inplace=True)
+    eulers.map(_euler2axangle_signal, inplace=True, show_progressbar=False)
     orientation_map = eulers.as_signal2D((0,1))
     #Set calibration to same as signal
     x = orientation_map.axes_manager.signal_axes[0]

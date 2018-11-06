@@ -27,7 +27,7 @@ source_a_file = ../../Data/generated_patterns/DiffractionPattern_gen_01.png
 source_b_file = ../../Data/generated_patterns/DiffractionPattern_gen_02.png
 
 split_width = 50
-split_height = 50
+split_height = 200
 
 # Template matching
 zone_h = 1
@@ -38,5 +38,5 @@ structure_wz_file = D:/Dokumenter/MTNANO/Prosjektoppgave/Data/Gen/NN_test_data/G
 beam_energy_keV = 200
 specimen_thickness = 8
 target_pattern_dimension_pixels = 144
-nm_per_pixel = 1.12
-reciprocal_angstrom_per_pixel = 0.033
+nm_per_pixel = 1.96
+reciprocal_angstrom_per_pixel = 0.034
