@@ -11,7 +11,6 @@ def factorize(diffraction_patterns, parameters):
     signal_height = diffraction_patterns.shape[3]
     data_flat = diffraction_patterns.reshape(-1, signal_width*signal_height)
 
-    # TODO(simonhog): PCA for reduction to fewer dimensions (~100) first?
     embedding = umap.UMAP(
         n_neighbors =parameters['umap_neighbors'],
         min_dist    =parameters['umap_min_dist'],
@@ -26,12 +25,16 @@ def factorize(diffraction_patterns, parameters):
 
     # TODO(simonhog): Template mapping for component -> physical phases
     label_count = clusterer.labels_.max()
-    factors = np.empty((label_count, signal_width, signal_height))
-    loadings = np.empty((label_count, nav_width, nav_height))
-    for label in range(label_count):
-        mask = (clusterer.labels_ == label).reshape(nav_width, nav_height)
-        loadings[label] = clusterer.probabilities_.reshape(nav_width, nav_height)
-        loadings[label][~mask] = 0.0
-        factors[label] = np.average(diffraction_patterns.reshape(-1, signal_width*signal_height), weights=loadings[label].ravel(), axis=0).reshape(signal_width, signal_height)
-    return factors, loadings
+    if label_count <= 0:
+        factors = np.zeros((1, signal_width, signal_height))
+        loadings = np.zeros((1, nav_width, nav_height))
+    else:
+        factors = np.empty((label_count, signal_width, signal_height))
+        loadings = np.empty((label_count, nav_width, nav_height))
+        for label in range(label_count):
+            mask = (clusterer.labels_ == label).reshape(nav_width, nav_height)
+            loadings[label] = clusterer.probabilities_.reshape(nav_width, nav_height)
+            loadings[label][~mask] = 0.0
+            factors[label] = np.average(diffraction_patterns.reshape(-1, signal_width*signal_height), weights=loadings[label].ravel(), axis=0).reshape(signal_width, signal_height)
+    return (factors, loadings), 'decomposition'
 
