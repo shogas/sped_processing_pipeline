@@ -21,7 +21,6 @@ from pyxem.generators.indexation_generator import IndexationGenerator
 
 from parameters import parameters_parse, parameters_save
 from common import result_image_file_info
-from utils.template_matching import generate_diffraction_library, get_orientation_map
 
 
 import warnings
@@ -58,7 +57,7 @@ def generate_test_linear_noiseless(parameters):
     return factors, loadings
 
 
-def save_decomposition(output_dir, method_name, slice_x, slice_y, factors, loadings, factor_indices):
+def save_decomposition(output_dir, method_name, slice_x, slice_y, factors, loadings):
     output_prefix = os.path.join(
             output_dir,
             '{}_{}-{}_{}-{}'.format(
@@ -230,11 +229,6 @@ def run_factorizations(parameters):
     split_width = parameters['split_width'] if 'split_width' in parameters else full_width
     split_height = parameters['split_height'] if 'split_height' in parameters else full_height
 
-    phase_names = ['ZB', 'WZ']
-    diffraction_library = generate_diffraction_library(parameters, phase_names)
-    found_phases = []
-    found_factors = []
-
     # TODO(simonhog): Might want to align the splits to data chunk sizes (diffraction_patterns.chunks)
     for split_start_y in range(0, full_height, split_height):
         split_end_y = min(split_start_y + split_height, full_height)
@@ -267,47 +261,6 @@ def run_factorizations(parameters):
 
                 factors, loadings = factorizer(current_data.copy(), parameters)
                 factor_indices = []
-
-
-                if False:
-                    def image_difference(factor_a, factor_b):
-                        return np.sum((factor_a - factor_b)**2)
-
-                    threshold = 10
-                    for factor in factors:
-                        factor *= 1/factor.max()
-                        if (len(found_factors) > 0):
-                            diffs = [image_difference(factor, found_factor) for found_factor in found_factors]
-                            print(diffs)
-                            best_diff_index = np.argmin(diffs)
-                            best_diff = diffs[best_diff_index]
-                            if (best_diff < threshold):
-                                print('Matched phase {} (difference {})'.format(best_diff_index, best_diff))
-                                factor_indices.append(best_diff_index)
-                            else:
-                                print('New phase {} (difference {})'.format(best_diff_index, best_diff))
-                                factor_indices.append(len(found_factors))
-                                found_factors.append(factor)
-                        else:
-                            factor_indices.append(len(found_factors))
-                            found_factors.append(factor)
-
-                elif True:
-                    dp = pxm.ElectronDiffraction([factors])
-                    pattern_indexer = IndexationGenerator(dp, diffraction_library)
-                    indexation_results = pattern_indexer.correlate(n_largest=4, keys=phase_names)
-                    crystal_mapping = indexation_results.get_crystallographic_map()
-                    phases = crystal_mapping.get_phase_map().data.ravel()
-                    orientations = get_orientation_map(crystal_mapping).data.ravel()
-                    for phase, orientation in zip(phases, orientations):
-                        if (phase, orientation) in found_phases:
-                            factor_indices.append(found_phases.index((phase, orientation)))
-                        else:
-                            factor_indices.append(len(found_phases))
-                            found_phases.append((phase, orientation))
-                    print(factor_indices)
-                else:
-                    factor_indices = range(len(factors))
 
                 end_time = time.perf_counter()
                 elapsed_time = end_time - start_time
