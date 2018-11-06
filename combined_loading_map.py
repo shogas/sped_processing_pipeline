@@ -86,12 +86,13 @@ def combine_loading_map(method, factor_infos, loading_infos):
 
     known_factors = []
     for factor_info, loading_info in report_progress(zip(factor_infos, loading_infos), total=len(factor_infos)):
-        factor = np.asarray(Image.open(factor_info['filename']))
-        factor = factor/factor.max()
         report_progress.write('Tile {}:{}  {}:{} (of {} {})'.format(
             factor_info['x_start'], factor_info['x_stop'],
             factor_info['y_start'], factor_info['y_stop'],
             total_width, total_height))
+        factor = np.asarray(Image.open(factor_info['filename']))
+        factor = factor/factor.max()
+
         factor_index = classify(factor, known_factors)
         report_progress.write('Factor index: {}'.format(factor_index))
 
@@ -108,7 +109,9 @@ def combine_loading_map(method, factor_infos, loading_infos):
 def combine_loading_maps(result_directory):
     parameters = parameters_parse(os.path.join(result_directory, 'metadata.txt'))
 
-    methods = [method.strip() for method in parameters['methods'].split(',')]
+    methods = [
+            method.strip() for method in parameters['methods'].split(',')
+            if parameters['__save_method_{}'.format(method)] == 'decomposition']
     factor_infos = result_image_file_info(result_directory, 'factors')
     loading_infos = result_image_file_info(result_directory, 'loadings')
     for (method_name, factor_infos_for_method), loading_infos_for_method in zip(factor_infos.items(), loading_infos.values()):
@@ -119,6 +122,5 @@ if __name__ == '__main__':
     # TODO(simonhog): Make these less global. known_factors -> general dictionary for data?
     result_directory = sys.argv[1]
     phase_names = ['ZB', 'WZ']
-    parameters = parameters_parse(os.path.join(result_directory, 'metadata.txt'))
     diffraction_library = generate_diffraction_library(parameters, phase_names)
     combine_loading_maps(result_directory)

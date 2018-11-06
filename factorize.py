@@ -281,8 +281,14 @@ def run_factorizations(parameters):
                 parameters[elapsed_key] = elapsed_time + (parameters[elapsed_key] if elapsed_key in parameters else 0)
                 if save_method == 'object':
                     save_object(output_dir, method_name, slice_x, slice_y, save_data)
-                else:
+                elif save_method == 'decomposition':
                     save_decomposition(output_dir, method_name, slice_x, slice_y, *save_data)
+                else:
+                    print('WARNING: Save method "{}" unknown. Using decomposition'.format(save_method))
+                    save_method = 'decomposition'
+                    save_decomposition(output_dir, method_name, slice_x, slice_y, *save_data)
+
+                parameters['__save_method_{}'.format(method_name)] = save_method
 
 
                 if False:
