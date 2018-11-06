@@ -4,24 +4,67 @@ import sys
 import numpy as np
 from PIL import Image
 
+from tqdm import tqdm as report_progress
+
+import matplotlib
+matplotlib.use('Qt5Agg')
+import pyxem as pxm
+from pyxem.generators.indexation_generator import IndexationGenerator
+
 from common import result_image_file_info
 from parameters import parameters_parse
+from utils.template_matching import generate_diffraction_library, get_orientation_map
 
-def image_difference(image_a, image_b):
-    return np.sum((image_a - image_b)**2)
+def image_l2_norm(image_a, image_b):
+    return np.linalg.norm(image_a - image_b, ord='fro')
+
+
+def classify_l2_norm(factor, known_factors):
+    threshold = 5
+    if len(known_factors) > 0:
+        diffs = [image_l2_norm(factor, known_factor) for known_factor in known_factors]
+        best_diff_index = np.argmin(diffs)
+        best_diff = diffs[best_diff_index]
+        if (best_diff < threshold):
+            factor_index = best_diff_index
+            report_progress.write('Matched phase {} (difference {})'.format(factor_index, best_diff))
+        else:
+            factor_index = len(known_factors)
+            known_factors.append(factor)
+            report_progress.write('New phase {} (difference {})'.format(factor_index, best_diff))
+    else:
+        factor_index = len(known_factors)
+        known_factors.append(factor)
+
+    return factor_index
+
+
+def classify_template_match(factor, known_factors):
+    # factor = np.exp(factor)
+    dp = pxm.ElectronDiffraction([[factor]])
+    pattern_indexer = IndexationGenerator(dp, diffraction_library)
+    indexation_results = pattern_indexer.correlate(n_largest=4, keys=phase_names, show_progressbar=False)
+    crystal_mapping = indexation_results.get_crystallographic_map(show_progressbar=False)
+    phases = crystal_mapping.get_phase_map().data.ravel()
+    orientations = get_orientation_map(crystal_mapping).data.ravel()
+    for phase, orientation in zip(phases, orientations):
+        if (phase, orientation) in known_factors:
+            factor_index = known_factors.index((phase, orientation))
+            report_progress.write('Matched phase {}, {}'.format(phase, orientation))
+        else:
+            factor_index = len(known_factors)
+            known_factors.append((phase, orientation))
+            report_progress.write('New phase {}, {}'.format(phase, orientation))
+
+    return factor_index
 
 
 def combine_loading_map(method, factor_infos, loading_infos):
-    # print(method)
-    # print('Factors')
-    # for i in factor_infos: print(i)
-    # print('Loadings')
-    # for i in loading_infos: print(i)
-    # return
-
     total_width  = max((info['x_stop'] for info in loading_infos))
     total_height = max((info['y_stop'] for info in loading_infos))
-    print(total_width, total_height)
+
+    classify = classify_l2_norm
+    # classify = classify_template_match
 
     combined_loadings = np.zeros((total_height, total_width, 3))
 
@@ -41,35 +84,22 @@ def combine_loading_map(method, factor_infos, loading_infos):
             [0, 0.5, 0.5],
             ])
 
-    threshold = 50
     known_factors = []
-    for factor_info, loading_info in zip(factor_infos, loading_infos):
+    for factor_info, loading_info in report_progress(zip(factor_infos, loading_infos), total=len(factor_infos)):
         factor = np.asarray(Image.open(factor_info['filename']))
         factor = factor/factor.max()
-        if len(known_factors) > 0:
-            diffs = [image_difference(factor, known_factor) for known_factor in known_factors]
-            best_diff_index = np.argmin(diffs)
-            best_diff = diffs[best_diff_index]
-            if (best_diff < threshold):
-                print('Matched phase {} (difference {})'.format(best_diff_index, best_diff))
-                factor_index = best_diff_index
-            else:
-                print('New phase {} (difference {})'.format(best_diff_index, best_diff))
-                factor_index = len(known_factors)
-                known_factors.append(factor)
-        else:
-            factor_index = len(known_factors)
-            known_factors.append(factor)
+        report_progress.write('Tile {}:{}  {}:{} (of {} {})'.format(
+            factor_info['x_start'], factor_info['x_stop'],
+            factor_info['y_start'], factor_info['y_stop'],
+            total_width, total_height))
+        factor_index = classify(factor, known_factors)
+        report_progress.write('Factor index: {}'.format(factor_index))
 
         loading = np.asarray(Image.open(loading_info['filename']))
-        print('Factor index: {}'.format(factor_index))
-        print(colors[factor_index])
-        print(factor_info['x_start'], factor_info['x_stop'])
-        print(factor_info['y_start'], factor_info['y_stop'])
-        print()
+        color = colors[factor_index % len(colors)]
         combined_loadings[
                 factor_info['y_start']:factor_info['y_stop'],
-                factor_info['x_start']:factor_info['x_stop']] += np.outer(loading.ravel(), colors[factor_index]).reshape(loading.shape[0], loading.shape[1], 3)
+                factor_info['x_start']:factor_info['x_stop']] += np.outer(loading.ravel(), color).reshape(loading.shape[0], loading.shape[1], 3)
 
     combined_loadings *= 255 / combined_loadings.max()
     return Image.fromarray(combined_loadings.astype('uint8'))
@@ -86,4 +116,9 @@ def combine_loading_maps(result_directory):
         combined_loadings.save(os.path.join(result_directory, 'loading_map_{}.tiff'.format(method_name)))
 
 if __name__ == '__main__':
-    combine_loading_maps(sys.argv[1])
+    # TODO(simonhog): Make these less global. known_factors -> general dictionary for data?
+    result_directory = sys.argv[1]
+    phase_names = ['ZB', 'WZ']
+    parameters = parameters_parse(os.path.join(result_directory, 'metadata.txt'))
+    diffraction_library = generate_diffraction_library(parameters, phase_names)
+    combine_loading_maps(result_directory)
