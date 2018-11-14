@@ -5,6 +5,8 @@ import numpy as np
 import pickle
 from tqdm import tqdm as report_progress
 
+import matplotlib
+matplotlib.use('Qt5Agg')
 from pyxem import CrystallographicMap
 
 from common import result_object_file_info
@@ -15,7 +17,7 @@ def combine_crystal_map(object_infos):
     total_width  = max((info['x_stop'] for info in object_infos))
     total_height = max((info['y_stop'] for info in object_infos))
 
-    combined_crystal_map_data = np.zeros((total_width, total_height, 7))
+    combined_crystal_map_data = np.zeros((total_height, total_width, 7))
 
     for object_info in report_progress(object_infos):
         report_progress.write('Tile {}:{}  {}:{} (of {} {})'.format(
@@ -42,8 +44,12 @@ def combine_orientations(result_directory):
     object_infos = result_object_file_info(result_directory)
     if 'template_match' in object_infos:
         crystal_map = combine_crystal_map(object_infos['template_match'])
-        print(crystal_map.axes_manager)
-        print(crystal_map.data)
+        crystal_map.get_phase_map().plot()
+        crystal_map.get_distance_from_modal_angle().plot()
+        import matplotlib.pyplot as plt
+        plt.show()
+        # print(crystal_map.axes_manager)
+        # print(crystal_map.data)
 
 
 if __name__ == '__main__':
