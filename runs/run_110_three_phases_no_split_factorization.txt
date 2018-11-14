@@ -1,0 +1,33 @@
+shortname = 110_three_phase_no_split
+methods = nmf, umap
+
+
+# Files
+output_dir = ../../Data/Runs
+sample_file = D:/Dokumenter/MTNANO/Prosjektoppgave/SPED_data_GaAs_NW/gen/Julie_180510_SCN45_FIB_a_three_phase_single_area.hdf5
+data_source = sample_data
+
+
+# Splitting
+# (no splitting)
+split_width = 50
+split_height = 50
+
+
+# Preprocessing
+preprocess = gaussian_difference
+gaussian_sigma_min = 2
+gaussian_sigma_max = 10
+
+
+# Phases
+phase_count = 3
+
+
+# UMAP
+umap_random_seed = 42
+umap_neighbors = 100
+umap_min_dist = 0.0
+umap_n_components = 2
+umap_cluster_min_samples = 1
+umap_cluster_size = 150

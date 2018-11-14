@@ -12,7 +12,7 @@ gaussian_sigma_max = 6
 
 # Files
 output_dir = ../../Data/Tmp
-test_data_source = sample_data
+data_source = sample_data
 sample_file = D:/Dokumenter/MTNANO/Prosjektoppgave/SPED_data_GaAs_NW/gen/Julie_180510_SCN45_FIB_a_crop.hdf5
 # sample_file = D:/Dokumenter/MTNANO/Prosjektoppgave/SPED_data_GaAs_NW/gen/Julie_180510_SCN45_FIB_c_crop.hdf5
 # sample_file = D:/Dokumenter/MTNANO/Prosjektoppgave/SPED_data_GaAs_NW/gen/Julie_180510_SCN45_FIB_c_crop_50,200-99,399_gaussian_difference_1_6.hdf5

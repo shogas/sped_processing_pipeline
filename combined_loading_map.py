@@ -106,12 +106,11 @@ def combine_loading_map(method, factor_infos, loading_infos):
     return Image.fromarray(combined_loadings.astype('uint8'))
 
 
-def combine_loading_maps(result_directory):
-    parameters = parameters_parse(os.path.join(result_directory, 'metadata.txt'))
+def combine_loading_maps(parametrs, result_directory):
 
     methods = [
             method.strip() for method in parameters['methods'].split(',')
-            if parameters['__save_method_{}'.format(method)] == 'decomposition']
+            if parameters['__save_method_{}'.format(method.strip())] == 'decomposition']
     factor_infos = result_image_file_info(result_directory, 'factors')
     loading_infos = result_image_file_info(result_directory, 'loadings')
     for (method_name, factor_infos_for_method), loading_infos_for_method in zip(factor_infos.items(), loading_infos.values()):
@@ -121,6 +120,7 @@ def combine_loading_maps(result_directory):
 if __name__ == '__main__':
     # TODO(simonhog): Make these less global. known_factors -> general dictionary for data?
     result_directory = sys.argv[1]
+    parameters = parameters_parse(os.path.join(result_directory, 'metadata.txt'))
     phase_names = ['ZB', 'WZ']
     diffraction_library = generate_diffraction_library(parameters, phase_names)
-    combine_loading_maps(result_directory)
+    combine_loading_maps(parameters, result_directory)

@@ -221,16 +221,16 @@ def run_factorizations(parameters):
         os.makedirs(output_dir)
 
 
-    if not 'test_data_source' in parameters:
-        print('No test_data_source given')
+    if not 'data_source' in parameters:
+        print('No data_source given')
         exit(1)
-    elif data_source_name(parameters['test_data_source']) not in globals():
-        print('Unknown test_data_source {}'.format(parameters['test_data_source']))
+    elif data_source_name(parameters['data_source']) not in globals():
+        print('Unknown data_source {}'.format(parameters['data_source']))
         exit(1)
 
     methods = [method.strip() for method in parameters['methods'].split(',')]
 
-    data_source_loader = globals()[data_source_name(parameters['test_data_source'])]
+    data_source_loader = globals()[data_source_name(parameters['data_source'])]
     if 'preprocess' in parameters:
         preprocessor = globals()[preprocessor_name(parameters['preprocess'])]
 

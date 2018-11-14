@@ -11,9 +11,9 @@ def factorize(diffraction_patterns, parameters):
     # dps.decomposition(True, algorithm='svd')
     # dps.plot_explained_variance_ratio()
     # TODO(simonhog): Automate getting number of factors
-    factor_count = 2
+    component_count = int(parameters['phase_count'])
 
-    decompose_nmf(dps, factor_count)
+    decompose_nmf(dps, component_count)
 
     # dps.plot_decomposition_results()
     # plt.show()
