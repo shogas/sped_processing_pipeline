@@ -1,18 +1,13 @@
 debug = true
 shortname = sample_test
-methods = nmf
-# , nmf_ard_so
+# methods = cepstrum_nmf, nmf, nmf_online, umap
+methods = umap
 
 
 # Preprocessing
-# preprocess = gaussian_difference
-# center_radius_start = 2
-# center_radius_finish = 5
-# center_square = 14
-# gaussian_sigma_min = 1
-# gaussian_sigma_max = 6
-# direct_beam_mask_radius = 7
-preprocess = hdome
+preprocess = gaussian_difference
+gaussian_sigma_min = 1
+gaussian_sigma_max = 6
 
 
 # Files
@@ -26,8 +21,11 @@ sample_file = D:/Dokumenter/MTNANO/Prosjektoppgave/SPED_data_GaAs_NW/gen/Julie_1
 source_a_file = ../../Data/generated_patterns/DiffractionPattern_gen_01.png
 source_b_file = ../../Data/generated_patterns/DiffractionPattern_gen_02.png
 
-split_width = 50
-split_height = 200
+
+# Splitting
+split_width = 40
+split_height = 80
+
 
 # Template matching
 zone_h = 1
@@ -38,5 +36,15 @@ structure_wz_file = D:/Dokumenter/MTNANO/Prosjektoppgave/Data/Gen/NN_test_data/G
 beam_energy_keV = 200
 specimen_thickness = 8
 target_pattern_dimension_pixels = 144
-nm_per_pixel = 1.96
+nm_per_pixel = 1.12
 reciprocal_angstrom_per_pixel = 0.034
+phase_names = ZB, WZ
+
+
+# UMAP
+umap_random_seed = 42
+umap_neighbors = 15
+umap_min_dist = 0.1
+umap_n_components = 2
+umap_cluster_min_samples = 20
+umap_cluster_size = 500

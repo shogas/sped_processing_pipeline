@@ -25,4 +25,4 @@ beam_energy_keV = 200
 specimen_thickness = 80
 reciprocal_radius = 1
 target_pattern_dimension_pixels = 144
-nm_per_pixel = 11.2
+nm_per_pixel = 1.12

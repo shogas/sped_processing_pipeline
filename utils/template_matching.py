@@ -376,7 +376,7 @@ def generate_diffraction_library(parameters, phase_names, list_type='complete'):
     target_pattern_dimension_pixels = parameters['target_pattern_dimension_pixels']
     reciprocal_angstrom_per_pixel = parameters['reciprocal_angstrom_per_pixel']
     # TODO(simonhog): Parameterize
-    rotation_list_resolution = np.deg2rad(2)
+    rotation_list_resolution = np.deg2rad(1)
     max_theta = np.deg2rad(5)
     # TODO(simonhog): Generalize to use (arrays) from parameter file
     # TODO(simonhog): Figure out how diffpy actually want absolute paths on Windows

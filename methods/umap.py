@@ -1,5 +1,4 @@
 import numpy as np
-
 import hyperspy.api as hs
 import umap
 import hdbscan
@@ -24,7 +23,7 @@ def factorize(diffraction_patterns, parameters):
     ).fit(embedding)
 
     # TODO(simonhog): Template mapping for component -> physical phases
-    label_count = clusterer.labels_.max()
+    label_count = clusterer.labels_.max() + 1  # include 0
     if label_count <= 0:
         factors = np.zeros((1, signal_width, signal_height))
         loadings = np.zeros((1, nav_width, nav_height))
