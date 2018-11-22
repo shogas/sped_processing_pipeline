@@ -355,7 +355,6 @@ def plot_debug(parameters):
     exit(0)
 
 
-# TODO(simonhog): A lot of this comes from the sped_nn_recognition codebase
 def generate_diffraction_library(parameters, phase_names, list_type='complete'):
     if list_type == 'complete':
         cache_file = 'C:/Users/simho/OneDrive/Skydok/MTNANO/Prosjektoppgave/Data/Tmp/library_cache.pickle'

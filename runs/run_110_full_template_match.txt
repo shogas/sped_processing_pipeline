@@ -1,0 +1,39 @@
+shortname = 110_full_template_match
+methods = template_match
+
+
+# Files
+output_dir = ../../Data/Runs
+sample_file = D:/Dokumenter/MTNANO/Prosjektoppgave/SPED_data_GaAs_NW/raw/Julie_180510_SCN45_FIB_a.blo
+data_source = sample_data
+
+
+# Splitting (10x10 tiles)
+split_width = 29
+split_height = 41
+
+
+# Preprocessing
+preprocess = affine_transform, gaussian_difference
+gaussian_sigma_min = 2
+gaussian_sigma_max = 8
+# From optimization:
+scale_x = 0.9954344818525674
+scale_y = 1.0314371455342144
+offset_x = 0.6312060246018557
+offset_y = -0.3516223696556279
+
+
+# Template matching
+specimen_thickness = 8
+beam_energy_keV = 200
+reciprocal_angstrom_per_pixel = 0.032
+phase_names = zb,wz
+
+phase_zb_structure_file = D:\Dokumenter/MTNANO/Prosjektoppgave/Data/Gen/NN_test_data/GaAs_mp-2534_conventional_standard.cif
+phase_zb_crystal_system = cubic
+phase_zb_inplane_rotations = 103, 173
+
+phase_wz_structure_file = D:\Dokumenter/MTNANO/Prosjektoppgave/Data/Gen/NN_test_data/GaAs_mp-8883_conventional_standard.cif
+phase_wz_crystal_system = hexagonal
+phase_wz_inplane_rotations = 140.5
