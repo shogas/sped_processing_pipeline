@@ -173,6 +173,21 @@ def data_source_name(data_source):
     return 'data_source_' + data_source
 
 
+def preprocessor_affine_transform(data, parameters):
+    # TODO(simonhog): What is the cost of wrapping in ElectronDiffraction?
+    signal = pxm.ElectronDiffraction(data)
+    scale_x = parameters['scale_x']
+    scale_y = parameters['scale_y']
+    offset_x = parameters['offset_x']
+    offset_y = parameters['offset_y']
+    signal.apply_affine_transformation(np.array([
+            [scale_x, 0, offset_x],
+            [0, scale_y, offset_y],
+            [0, 0, 1]
+        ]))
+    return signal.data
+
+
 def preprocessor_gaussian_difference(data, parameters):
     # TODO(simonhog): Does this copy the data? Hopefully not
     signal = pxm.ElectronDiffraction(data)
