@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import pickle
 
+import hyperspy.api as hs
 import pyxem as pxm
 from pyxem.utils.expt_utils import circular_mask
 from pyxem.generators.indexation_generator import IndexationGenerator
@@ -305,6 +306,7 @@ def run_factorizations(parameters):
 
 
 if __name__ == '__main__':
+    hs.preferences.General.nb_progressbar = False
     if len(sys.argv) > 1:
         parameters = parameters_parse(sys.argv[1])
     else:
