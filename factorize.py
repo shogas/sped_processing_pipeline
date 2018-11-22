@@ -254,7 +254,7 @@ def run_factorizations(parameters):
 
     data_source_loader = globals()[data_source_name(parameters['data_source'])]
     if 'preprocess' in parameters:
-        preprocessor = globals()[preprocessor_name(parameters['preprocess'])]
+        preprocessors = [globals()[preprocessor_name(name.strip())] for name in parameters['preprocess'].split(',')]
 
     diffraction_patterns = data_source_loader(output_dir)
     # NOTE(simonhog): Assuming row-major storage
@@ -280,7 +280,8 @@ def run_factorizations(parameters):
                 print('Preprocessing')
                 start_time = time.perf_counter()
 
-                current_data = preprocessor(current_data, parameters)
+                for preprocessor in preprocessors:
+                    current_data = preprocessor(current_data, parameters)
 
                 end_time = time.perf_counter()
                 elapsed_time = end_time - start_time
