@@ -20,7 +20,7 @@ def image_l2_norm(image_a, image_b):
 
 
 def classify_l2_norm(factor, known_factors):
-    threshold = 5
+    threshold = 2
     if len(known_factors) > 0:
         diffs = [image_l2_norm(factor, known_factor) for known_factor in known_factors]
         best_diff_index = np.argmin(diffs)
