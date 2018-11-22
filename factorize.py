@@ -89,6 +89,9 @@ def save_object(output_dir, method_name, slice_x, slice_y, data):
 def save_combined_loadings(output_dir):
     loading_image_infos = result_image_file_info(output_dir, 'loadings')
 
+    if len(loading_image_infos) == 0:
+        return
+
     first_image_infos = next(iter(loading_image_infos.values()))
     width  = max([image_info['x_stop'] for image_info in first_image_infos])
     height = max([image_info['y_stop'] for image_info in first_image_infos])
@@ -217,10 +220,13 @@ def preprocessor_name(preprocessor):
 
 def run_factorizations(parameters):
     output_dir = parameters['output_dir'] if 'output_dir' in parameters else ''
+
+    if not os.path.exists(os.path.join(output_dir, 'tmp')):
+        os.makedirs(os.path.join(output_dir, 'tmp'))
+
     output_dir = os.path.join(output_dir, 'run_{}_{}'.format(parameters['shortname'], parameters['__date_string']))
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-
 
     if not 'data_source' in parameters:
         print('No data_source given')
