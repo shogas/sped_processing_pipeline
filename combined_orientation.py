@@ -9,6 +9,8 @@ import matplotlib
 # matplotlib.use('Qt5Agg')
 matplotlib.use('pgf')
 import matplotlib.pyplot as plt
+
+
 import hyperspy.api as hs
 from pyxem.signals.indexation_results import IndexationResults
 
@@ -29,11 +31,9 @@ def save_figure(signal, filename, padding=(0.05, 0.05, 1, 1), size=(2.5, 2.5), *
             padding={'left': padding[0], 'bottom': padding[1], 'right': padding[2], 'top': padding[3]},
             **kwargs)[0]
     plot.figure.set_size_inches(size)
+
     plot.figure.savefig(filename + '.pdf')
     plot.figure.savefig(filename + '.pgf')
-    # print(phase_plot)
-    # print(type(phase_plot))
-    # print(phase_plot.__dict__)
     # plt.show()
 
 def combine_indexation_results(object_infos):
@@ -72,6 +72,7 @@ def combine_orientations(result_directory):
         indexation_results = combine_indexation_results(object_infos['template_match'])
 
         crystal_map = indexation_results.get_crystallographic_map()
+        crystal_map.save_mtex_map('mtex_test.csv')
         phase_map = crystal_map.get_phase_map()
         orientation_map = crystal_map.get_orientation_map()
 
