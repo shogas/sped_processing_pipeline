@@ -103,7 +103,9 @@ def save_combined_loadings(output_dir):
             if factor_index >= 3:
                 factor_index = 0
                 print('WARNING: Too many factors for RGB output. Writing loading to red channel.')
-            merged_loadings[image_info['y_start']:image_info['y_stop'], image_info['x_start']:image_info['x_stop'], factor_index] = np.asarray(Image.open(image_info['filename']))
+            merged_loadings[image_info['y_start']:image_info['y_stop'],
+                            image_info['x_start']:image_info['x_stop'],
+                            factor_index] += np.asarray(Image.open(image_info['filename']))
 
         # TODO: Do I want to save these as floats?
         image_data = (merged_loadings * (255 / np.max(merged_loadings))).astype('uint8')
