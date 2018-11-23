@@ -203,8 +203,7 @@ def preprocessor_gaussian_difference(data, parameters):
     signal = signal.remove_background(
             'gaussian_difference',
             sigma_min=parameters['gaussian_sigma_min'],
-            sigma_max=parameters['gaussian_sigma_max'],
-            show_progressbar=False)
+            sigma_max=parameters['gaussian_sigma_max'])
     signal.data /= signal.data.max()
 
     # TODO(simonhog): Could cache beam mask between calls
@@ -220,14 +219,10 @@ def preprocessor_gaussian_difference(data, parameters):
 
 def preprocessor_hdome(data, parameters):
     signal = pxm.ElectronDiffraction(data)
-    signal.apply_affine_transformation(np.array([
-        [0.95, 0, 0],
-        [0, 1, 0],
-        [0, 0, 1]
-        ]), show_progressbar=False)
-    signal = signal.remove_background('h-dome', h=0.55, show_progressbar=False)
+    signal = signal.remove_background('h-dome', h=parameters['hdome_h'])
     signal.data *= 1/signal.data.max()
     return signal.data
+
 
 def preprocessor_name(preprocessor):
     return 'preprocessor_' + preprocessor
