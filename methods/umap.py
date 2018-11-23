@@ -15,6 +15,7 @@ def factorize(diffraction_patterns, parameters):
         min_dist    =parameters['umap_min_dist'],
         n_components=parameters['umap_n_components'],
         random_state=parameters['umap_random_seed'],  # For consistency
+        verbose=True,
     ).fit_transform(data_flat)
 
     clusterer = hdbscan.HDBSCAN(
