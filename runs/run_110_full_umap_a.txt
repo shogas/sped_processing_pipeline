@@ -8,9 +8,9 @@ sample_file = D:/Dokumenter/MTNANO/Prosjektoppgave/SPED_data_GaAs_NW/raw/Julie_1
 data_source = sample_data
 
 
-# Splitting (2x2 tiles)
-split_width = 145
-split_height = 205
+# Splitting (5x5 tiles)
+split_width = 58
+split_height = 82
 
 
 # Preprocessing
@@ -26,8 +26,8 @@ offset_y = -0.3516223696556279
 
 # UMAP
 umap_random_seed = 42
-umap_neighbors = 100
+umap_neighbors = 50
 umap_min_dist = 0.0
 umap_n_components = 2
 umap_cluster_min_samples = 1
-umap_cluster_size = 150
+umap_cluster_size = 300

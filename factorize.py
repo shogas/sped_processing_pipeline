@@ -240,6 +240,8 @@ def run_factorizations(parameters):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
+    parameters['output_dir_run'] = output_dir
+
     if not 'data_source' in parameters:
         print('No data_source given')
         exit(1)
