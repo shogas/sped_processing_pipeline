@@ -26,8 +26,8 @@ offset_y = -0.3516223696556279
 
 # UMAP
 umap_random_seed = 42
-umap_neighbors = 50
+umap_neighbors = 100
 umap_min_dist = 0.0
 umap_n_components = 2
-umap_cluster_min_samples = 1
-umap_cluster_size = 300
+umap_cluster_min_samples = 10
+umap_cluster_size = 150

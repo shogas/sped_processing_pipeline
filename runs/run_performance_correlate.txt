@@ -1,0 +1,15 @@
+shortname = perf_correlate
+
+# Files
+output_dir = ../../Data/Runs/run_perf_correlate
+sample_file = D:/Dokumenter/MTNANO/Prosjektoppgave/SPED_data_GaAs_NW/gen/Julie_180510_SCN45_FIB_a_crop.hdf5
+structure_filename = D:\Dokumenter/MTNANO/Prosjektoppgave/Data/Gen/NN_test_data/GaAs_mp-2534_conventional_standard.cif
+
+# Simulation parameters
+specimen_thickness = 8
+beam_energy_keV = 200
+reciprocal_angstrom_per_pixel = 0.032
+
+# Repetitions
+library_size_max = 5000
+library_size_step = 100

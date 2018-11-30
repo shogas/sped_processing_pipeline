@@ -1,0 +1,28 @@
+shortname = 112_c_full_nmf
+methods = nmf
+
+
+# Files
+output_dir = ../../Data/Runs
+sample_file = D:/Dokumenter/MTNANO/Prosjektoppgave/SPED_data_GaAs_NW/raw/Julie_180510_SCN45_FIB_c.blo
+data_source = sample_data
+
+
+# Splitting
+split_width = 100
+split_height = 50
+
+
+# Preprocessing
+preprocess = affine_transform, gaussian_difference
+gaussian_sigma_min = 2
+gaussian_sigma_max = 8
+# From optimization:
+scale_x = 1.0058114881500018
+scale_y = 0.9879304925696586
+offset_x = -0.4580538278930447
+offset_y = 0.32006351671331673
+
+
+# NMF
+phase_count = 4
