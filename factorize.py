@@ -136,7 +136,7 @@ def get_factorizer(name):
     return getattr(mod, 'factorize')
 
 
-def data_source_linear_ramp(output_dir):
+def data_source_linear_ramp(parameters):
     ground_truth_factors, ground_truth_loadings = generate_test_linear_noiseless(parameters)
 
     # TODO(simonhog): numpy probably has a way of doing this without the reshape
@@ -155,16 +155,18 @@ def data_source_linear_ramp(output_dir):
         for split_start_x in range(0, sample_width, split_width):
             split_end_x = min(split_start_x + split_width, sample_width)
             slice_x = slice(split_start_x, split_end_x)
-            save_decomposition(output_dir, 'ground_truth', slice_x, slice_y, ground_truth_factors, ground_truth_loadings[:, slice_y, slice_x], range(factor_count))
+            save_decomposition(parameters['output_dir_run'], 'ground_truth', slice_x, slice_y, ground_truth_factors, ground_truth_loadings[:, slice_y, slice_x], range(factor_count))
 
     diffraction_patterns = np.matmul(loadings.T, factors)
     diffraction_patterns = diffraction_patterns.reshape((sample_height, sample_width, pattern_height, pattern_width))
     return diffraction_patterns
 
 
-def data_source_sample_data(output_dir):
+def data_source_sample_data(parameters):
     sample_filename = parameters['sample_file']
     sample = pxm.load(sample_filename, lazy=True)
+    parameters['nav_scale_x'] = sample.axes_manager.navigation_axes[1].scale
+    parameters['nav_scale_y'] = sample.axes_manager.navigation_axes[0].scale
     # TODO(simonhog): Parameterize data type?
     sample.change_dtype('float32')
     sample.data *= 1/sample.data.max()
@@ -255,7 +257,7 @@ def run_factorizations(parameters):
     if 'preprocess' in parameters:
         preprocessors = [globals()[preprocessor_name(name.strip())] for name in parameters['preprocess'].split(',')]
 
-    diffraction_patterns = data_source_loader(output_dir)
+    diffraction_patterns = data_source_loader(parameters)
     # NOTE(simonhog): Assuming row-major storage
     full_width = diffraction_patterns.shape[1]
     full_height = diffraction_patterns.shape[0]
@@ -287,6 +289,7 @@ def run_factorizations(parameters):
                 print('    Elapsed: {}'.format(elapsed_time))
                 elapsed_key = '__elapsed_time_preprocessing'
                 parameters[elapsed_key] = elapsed_time + (parameters[elapsed_key] if elapsed_key in parameters else 0)
+
             for method_name in methods:
                 print('Running factorizer "{}"'.format(method_name))
                 start_time = time.perf_counter()
