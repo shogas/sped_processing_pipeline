@@ -37,7 +37,7 @@ def create_diffraction_library(parameters, half_pattern_size):
     beam_energy_keV = parameters['beam_energy_keV']
     reciprocal_angstrom_per_pixel = parameters['reciprocal_angstrom_per_pixel']
     phase_names = [phase_name.strip() for phase_name in parameters['phase_names'].split(',')]
-    rotation_list_resolution = np.deg2rad(1)
+    rotation_list_resolution = np.deg2rad(1)  # TODO(simonhog): Parameterize
 
     phase_descriptions = []
     inplane_rotations = []

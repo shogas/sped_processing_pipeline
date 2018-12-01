@@ -35,6 +35,7 @@ def factorize(diffraction_patterns, parameters):
             mask = (clusterer.labels_ == label).reshape(nav_width, nav_height)
             loadings[label] = clusterer.probabilities_.reshape(nav_width, nav_height)
             loadings[label][~mask] = 0.0
+            # TODO(simonhog): Select experimental pattern from weight centre?
             factors[label] = np.average(diffraction_patterns.reshape(-1, signal_width*signal_height), weights=loadings[label].ravel(), axis=0).reshape(signal_width, signal_height)
     return (factors, loadings), 'decomposition'
 
