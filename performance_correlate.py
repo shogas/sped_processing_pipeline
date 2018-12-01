@@ -1,10 +1,8 @@
-from datetime import datetime
 from heapq import nlargest
 from operator import itemgetter
 import os
-import sys
 import time
-import threading
+import sys
 
 import numpy as np
 import matplotlib
@@ -18,10 +16,10 @@ from pyxem.libraries.structure_library import StructureLibrary
 from pyxem.utils.sim_utils import rotation_list_stereographic
 import diffpy.structure
 
-import winstats
-
 
 from parameters import parameters_parse
+from utils.performance_log import LogThread
+from utils.performance_log import time_log_call
 
 
 def correlate(image, pattern_dictionary):
@@ -80,28 +78,6 @@ def correlate_library_new(image, library, n_largest, mask, keys=[]):
     return out_arr.reshape((len(library) * n_largest, 5))
 
 
-def current_timestamp():
-    return '{0:%Y}{0:%m}{0:%d}_{0:%H}_{0:%M}_{0:%S}_{0:%f}'.format(datetime.now())
-
-
-class LogThread(threading.Thread):
-    def __init__(self, log_filename, stopper):
-        super().__init__()
-        self.log_filename = log_filename
-        self.stopper = stopper
-        self.instance_number = python_process_instance_number(os.getpid())
-
-
-    def run(self):
-        with open(self.log_filename, 'w') as log_file:
-            while not self.stopper.is_set():
-                private_bytes = winstats.get_perf_data(
-                    r'\Process(python{})\Private Bytes'.format(self.instance_number),
-                   fmts='long')[0]
-                log_file.write('{}\t{}\n'.format(current_timestamp(), private_bytes))
-                time.sleep(0.1)
-
-
 def run_correlation(parameters):
     output_dir = parameters['output_dir'] if 'output_dir' in parameters else ''
     output_dir = os.path.join(output_dir, 'run_{}_{}'.format(parameters['shortname'], parameters['__date_string']))
@@ -119,7 +95,7 @@ def run_correlation(parameters):
     library_size_step = parameters['library_size_step']
 
     dp = pxm.load(in_file)
-    dp = pxm.ElectronDiffraction(dp.inav[:, dp.data.shape[1] // 2])
+    dp = pxm.ElectronDiffraction(dp.inav[:, :(dp.data.shape[1] // 2)])
 
     structure = diffpy.structure.loadStructure(structure_filename)
 
@@ -144,8 +120,8 @@ def run_correlation(parameters):
         ('old', correlate_library_old),
         ('new', correlate_library_new)]
 
-    log_stopper = threading.Event()
-    log_thread = LogThread(log_filename, log_stopper).start()
+    log_thread = LogThread(log_filename)
+    log_thread.start()
 
     with open(result_filename, 'w') as result_file:
         for library_size in range(library_size_step, library_size_max + 1, library_size_step):
@@ -168,36 +144,21 @@ def run_correlation(parameters):
 
             for method_name, correlate_library in correlation_methods:
                 print('    Correlating with {}'.format(method_name))
-                time_start = time.process_time()
-                matches = dp.map(correlate_library,
-                                     library=diffraction_library,
-                                     n_largest=5,
-                                     keys=[],
-                                     mask=mask,
-                                     inplace=False,
-                                     parallel=False,
-                                     show_progressbar=False)
-                time_end = time.process_time()
-                time_elapsed = time_end - time_start
+
+                time_elapsed = time_log_call(result_file, lambda: dp.map(
+                    correlate_library,
+                    library=diffraction_library,
+                    n_largest=5,
+                    keys=[],
+                    mask=mask,
+                    inplace=False,
+                    parallel=False,
+                    show_progressbar=False),
+                    method_name, library_size)
+
                 print('    End, elapsed: {:.2f}'.format(time_elapsed))
-                result_file.write('{}\t{}\t{}\t{}\n'.format(current_timestamp(), method_name, library_size, time_elapsed))
 
-    log_stopper.set()
-
-
-def python_process_instance_number(pid):
-    instance_number = 0
-    while True:
-        try:
-            python_pid = winstats.get_perf_data(r'\Process(python{})\ID Process'.format(
-                '' if instance_number == 0 else '#{}'.format(instance_number)),
-                fmts='long')[0]
-            if pid == python_pid:
-                return '' if instance_number == 0 else '#{}'.format(instance_number)
-            instance_number += 1
-        except OSError:
-            print('Did not find PID after {} attempts'.format(instance_number))
-            exit(0)
+    log_thread.stop()
 
 
 if __name__ == '__main__':

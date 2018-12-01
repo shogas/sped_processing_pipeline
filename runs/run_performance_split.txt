@@ -1,0 +1,11 @@
+shortname = perf_split
+
+# Files
+output_dir = ../../Data/Runs/run_perf_split
+sample_file = D:/Dokumenter/MTNANO/Prosjektoppgave/SPED_data_GaAs_NW/raw/Julie_180510_SCN45_FIB_a.blo
+
+# Repetitions
+component_count_step = 2
+component_count_max = 4
+split_size_step = 1000
+split_size_max = 20000
