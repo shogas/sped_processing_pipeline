@@ -1,26 +1,37 @@
 debug = true
 shortname = debug_all_run_small
 output_dir = ../../Data/Tmp
-test_data_source = sample_data
+data_source = sample_data
 sample_file = D:/Dokumenter/MTNANO/Prosjektoppgave/SPED_data_GaAs_NW/gen/Julie_180510_SCN45_FIB_c_crop_small.hdf5
-methods = cepstrum_nmf, nmf, nmf_online, template_match, umap
+methods = nmf, nmf_cepstrum, nmf_ard_so, nmf_online, template_match, umap
 split_width = 3
 split_height = 3
 
-zone_h = 1
-zone_k = 1
-zone_l = 0
 
-structure_zb_file = D:/Dokumenter/MTNANO/Prosjektoppgave/Data/Gen/NN_test_data/GaAs_mp-2534_conventional_standard.cif
-structure_wz_file = D:/Dokumenter/MTNANO/Prosjektoppgave/Data/Gen/NN_test_data/GaAs_mp-8883_conventional_standard.cif
-beam_energy_keV = 200
+# NMF
+phase_count = 4
+
+# NMF ARD SO
+rep_count = 2
+max_iterations = 100
+orthogonality_constraint = 0.05
+
+
+# Template matching
 specimen_thickness = 8
-reciprocal_radius = 1
-target_pattern_dimension_pixels = 144
-nm_per_pixel = 1.96
-phase_names = ZB, WZ
-reciprocal_angstrom_per_pixel = 0.035
+beam_energy_keV = 200
+reciprocal_angstrom_per_pixel = 0.032
+phase_names = zb,wz
 
+phase_zb_structure_file = D:\Dokumenter/MTNANO/Prosjektoppgave/Data/Gen/NN_test_data/GaAs_mp-2534_conventional_standard.cif
+phase_zb_crystal_system = cubic
+phase_zb_inplane_rotations = 103, 173
+
+phase_wz_structure_file = D:\Dokumenter/MTNANO/Prosjektoppgave/Data/Gen/NN_test_data/GaAs_mp-8883_conventional_standard.cif
+phase_wz_crystal_system = hexagonal
+phase_wz_inplane_rotations = 140.5
+
+# UMAP
 umap_random_seed = 42
 umap_neighbors = 20
 umap_min_dist = 0.0

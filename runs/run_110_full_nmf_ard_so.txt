@@ -1,0 +1,11 @@
+shortname = 110_full_nmf_ard_so
+methods = nmf_ard_so
+
+!include run_110_full_base.txt
+
+# NMF ARD SO
+phase_count = 4
+rep_count = 2
+max_iterations = 100
+orthogonality_constraint = 0.05
+
