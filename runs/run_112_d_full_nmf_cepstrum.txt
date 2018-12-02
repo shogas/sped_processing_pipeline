@@ -1,0 +1,7 @@
+shortname = 112_d_full_nmf
+methods = nmf
+
+!include run_112_d_full_base
+
+# NMF
+phase_count = 4

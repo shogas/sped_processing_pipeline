@@ -1,7 +1,7 @@
-shortname = 112_c_full_nmf_cepstrum
+shortname = 112_d_full_nmf_cepstrum
 methods = umap
 
-!include run_112_c_full_base
+!include run_112_d_full_base
 
 # UMAP
 umap_random_seed = 42

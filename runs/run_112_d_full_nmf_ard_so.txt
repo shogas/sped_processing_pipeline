@@ -1,7 +1,7 @@
-shortname = 112_c_full_nmf_ard_so
+shortname = 112_d_full_nmf_ard_so
 methods = nmf_ard_so
 
-!include run_112_c_full_base.txt
+!include run_112_d_full_base.txt
 
 # NMF ARD SO
 phase_count = 4
