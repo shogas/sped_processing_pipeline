@@ -24,7 +24,7 @@ def factorize(diffraction_patterns, parameters):
     # Scale so that loadings has a maximum value of 1.
     # TODO(simonhog): Is this required? The decomposition might already have this as a requirement to lift degeneracy. Check!
     # This sum should be 1 at all positions, min(sum) == max(sum) == 1?
-    scale = loadings.max(loadings.sum(axis=0))
+    scale = loadings.sum(axis=0).max()
     factors *= scale
     loadings /= scale
     return (factors, loadings), 'decomposition'
