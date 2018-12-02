@@ -8,4 +8,4 @@ sample_file = D:/Dokumenter/MTNANO/Prosjektoppgave/SPED_data_GaAs_NW/raw/Julie_1
 component_count_step = 2
 component_count_max = 4
 split_size_step = 1000
-split_size_max = 20000
+split_size_max = 5000
