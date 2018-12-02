@@ -1,0 +1,12 @@
+shortname = 112_full_nmf_cepstrum
+methods = umap
+
+!include run_112_full_base
+
+# UMAP
+umap_random_seed = 42
+umap_neighbors = 100
+umap_min_dist = 0.0
+umap_n_components = 3
+umap_cluster_min_samples = 10
+umap_cluster_size = 800
