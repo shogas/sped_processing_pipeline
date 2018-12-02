@@ -10,7 +10,7 @@ def get_commandline_output(command):
 
 
 def git_current_commit_hash():
-    return get_commandline_output('git rev-parse HEAD').strip()
+    return get_commandline_output('git rev-parse HEAD').strip().decode('utf-8')
 
 
 def git_uncommited_changes():
@@ -24,9 +24,8 @@ def try_convert_to_float(string):
     except ValueError:
         return string
 
-# TODO(simonhog): Allow comments
-def parameters_parse(filename):
-    # TODO(simonhog): Error handling
+
+def parameters_from_file(filename):
     with open(filename, 'r') as file:
         lines = file.read().splitlines()
     parameters = {}
@@ -38,17 +37,29 @@ def parameters_parse(filename):
         if len(line) == 0:
             continue
 
-        parts = line.split('=', 1)
-        if len(parts) != 2:
-            print('Invalid syntax in "{}" on line {}. Expected key = value (separated by single =).'.format(
-                filename, line_number + 1))
-        key = parts[0].strip()
-        value = parts[1].strip()
-        if value.isdigit():
-            value = int(value)
+        if line.startswith('!include'):
+            included_filename = line[len('!include '):]
+            included_filename = os.path.join(os.path.dirname(filename), included_filename)
+            parameters = {**parameters, **parameters_from_file(included_filename)}
         else:
-            value = try_convert_to_float(value)
-        parameters[key] = value
+            parts = line.split('=', 1)
+            if len(parts) != 2:
+                print('Invalid syntax in "{}" on line {}. Expected key = value (separated by single =).'.format(
+                    filename, line_number + 1))
+            key = parts[0].strip()
+            value = parts[1].strip()
+            if value.isdigit():
+                value = int(value)
+            else:
+                value = try_convert_to_float(value)
+            parameters[key] = value
+
+    return parameters
+
+
+def parameters_parse(filename):
+    # TODO(simonhog): Error handling
+    parameters = parameters_from_file(filename)
 
     now = datetime.now()
     parameters['__date'] = now.isoformat()  # TODO(simonhog): Ensure readable, add timezone. pytz library?
