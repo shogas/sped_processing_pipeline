@@ -1,4 +1,4 @@
-shortname = 110_full_nmf
+shortname = 110_full_nmf_4
 methods = nmf
 
 !include run_110_full_base.txt

@@ -1,7 +1,7 @@
-shortname = 110_full_nmf
+shortname = 110_full_nmf_3
 methods = nmf
 
 !include run_110_full_base.txt
 
 # NMF
-phase_count = 4
+phase_count = 3
