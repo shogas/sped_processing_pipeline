@@ -18,6 +18,13 @@ def factorize(diffraction_patterns, parameters):
         verbose=True,
     ).fit_transform(data_flat)
 
+    for i in range(1000):
+        path = os.path.join(parameters['output_dir_run'], 'embedding_{}.npy'.format(i))
+        if not os.path.exists(path):
+            print('Saving UMAP embedding to', path)
+            np.save(path, embedding)
+            break
+
     clusterer = hdbscan.HDBSCAN(
         min_samples=parameters['umap_cluster_min_samples'],
         min_cluster_size=parameters['umap_cluster_size'],
