@@ -296,7 +296,7 @@ def run_factorizations(parameters):
 
                 factorizer = get_factorizer(method_name)
 
-                save_data, save_method = factorizer(current_data.copy(), parameters)
+                save_data, save_method = factorizer(current_data, parameters)
                 factor_indices = []
 
                 end_time = time.perf_counter()
