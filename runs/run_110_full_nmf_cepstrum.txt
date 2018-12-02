@@ -1,0 +1,7 @@
+shortname = 110_full_nmf
+methods = nmf
+
+!include run_110_full_base.txt
+
+# NMF
+phase_count = 4
