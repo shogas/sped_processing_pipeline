@@ -1,7 +1,7 @@
-shortname = 112_e_full_nmf
-methods = nmf
+shortname = 112_e_full_nmf_cepstrum
+methods = nmf_cepstrum
 
-!include run_112_e_full_base
+!include run_112_e_full_base.txt
 
 # NMF
 phase_count = 4

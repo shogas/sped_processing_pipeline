@@ -35,11 +35,14 @@ class LogThread(threading.Thread):
     def run(self):
         with open(self.log_filename, 'w') as log_file:
             while not self.stopper.is_set():
-                private_bytes = winstats.get_perf_data(
-                    r'\Process(python{})\Private Bytes'.format(self.instance_number),
-                   fmts='long')[0]
-                log_file.write('{}\t{}\n'.format(current_timestamp(), private_bytes))
-                time.sleep(0.1)
+                try:
+                    private_bytes = winstats.get_perf_data(
+                        r'\Process(python{})\Private Bytes'.format(self.instance_number),
+                       fmts='long')[0]
+                    log_file.write('{}\t{}\n'.format(current_timestamp(), private_bytes))
+                except:
+                    pass
+                time.sleep(1)
 
 
     def stop(self):
@@ -52,7 +55,7 @@ def time_log_call(result_file, func, *args):
     time_end = time.process_time()
 
     time_elapsed = time_end - time_start
-    result_file.write(('{}\t'*(1 + len(args) + 1)).format(
+    result_file.write(('{}' + '\t{}'*len(args) + '\t{}\n').format(
         current_timestamp(),
         *args,
         time_elapsed))

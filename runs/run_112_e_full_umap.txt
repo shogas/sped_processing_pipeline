@@ -1,12 +1,12 @@
-shortname = 112_e_full_nmf_cepstrum
+shortname = 112_e_full_umap
 methods = umap
 
-!include run_112_e_full_base
+!include run_112_e_full_base.txt
 
 # UMAP
 umap_random_seed = 42
 umap_neighbors = 100
 umap_min_dist = 0.0
-umap_n_components = 3
-umap_cluster_min_samples = 10
-umap_cluster_size = 800
+umap_n_components = 5
+umap_cluster_min_samples = 1
+umap_cluster_size = 1000
