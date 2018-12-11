@@ -1,0 +1,17 @@
+shortname = perf_split_umap
+
+# Files
+output_dir = ../../Data/Runs/run_perf_split_umap
+sample_file = D:/Dokumenter/MTNANO/Prosjektoppgave/SPED_data_GaAs_NW/raw/Julie_180510_SCN45_FIB_a.blo
+
+# Repetitions
+n_neighbour_step = 250
+n_neighbour_max = 1000
+split_size_step = 10000
+split_size_max = 50000
+
+# UMAP properties
+umap_min_dist = 0.0
+umap_n_components = 2
+umap_cluster_min_samples = 1
+umap_cluster_size = 150

@@ -1,7 +1,7 @@
 from datetime import datetime
 import os
+
 import numpy as np
-import hyperspy.api as hs
 import umap
 import hdbscan
 
