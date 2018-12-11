@@ -60,18 +60,21 @@ def generate_test_linear_noiseless(parameters):
 
 
 def save_decomposition(output_dir, method_name, slice_x, slice_y, factors, loadings):
+    """Save the decomposition factors and loadings as tiff for viewing and
+    directly as float32 numpy arrays for further processing."""
     output_prefix = os.path.join(
             output_dir,
             '{}_{}-{}_{}-{}'.format(
                 method_name,
                 slice_x.start, slice_x.stop,
                 slice_y.start, slice_y.stop))
-    # TODO: Do I want to save these as floats?
     factors_scaling = 255.0 / (np.max(factors) or 1)
     loadings_scaling = 255.0 / (np.max(loadings) or 1)
     for i, factor in enumerate(factors):
+        np.save('{}_factors_{}.npy'.format(output_prefix, i), factor.astype('float32'))
         Image.fromarray((factor * factors_scaling).astype('uint8')).save('{}_factors_{}.tiff'.format(output_prefix, i))
     for i, loading in enumerate(loadings):
+        np.save('{}_loadings_{}.npy'.format(output_prefix, i), loading.astype('float32'))
         Image.fromarray((loading * loadings_scaling).astype('uint8')).save('{}_loadings_{}.tiff'.format(output_prefix, i))
 
 
@@ -112,28 +115,29 @@ def save_combined_loadings(output_dir):
         Image.fromarray(image_data).save(os.path.join(output_dir, 'loading_map_{}.tiff'.format(method_name)))
 
 
-def list_available_factorizers():
-    """ List all available factorizers in the methods directory """
-    print('Available factorizers from methods directory:')
+def list_available_processers():
+    """ List all available processers in the methods directory """
+    print('Available processeres from methods directory:')
     for module_file in glob.iglob('methods/*.py'):
-        factorizer_module = os.path.splitext(os.path.basename(module_file))[0]
+        processer_module = os.path.splitext(os.path.basename(module_file))[0]
         # Look for all python files in the methods subdirectory
-        mod = importlib.import_module('methods.{}'.format(factorizer_module))
-        factorizer = getattr(mod, 'factorize')
-        if factorizer:
-            print(' '*4 + factorizer.__name__)
+        mod = importlib.import_module('methods.{}'.format(processer_module))
+        processer = getattr(mod, 'process')
+        if processer:
+            print(' '*4 + processer.__name__)
 
 
-def get_factorizer(name):
-    """ Load the factorizer from methods/<name>.py and find the factorize metho
+def get_processer(name):
+    """ Load the processer from methods/<name>.py and find the processer method
 
-    Args:
-        name: name of factorization method, corresponding to the filename methods/<name>.py.
+    Parameters
+    ----------
+        name: name of processing method, corresponding to the filename methods/<name>.py.
     Returns:
-        Factorizer method.
+        Processer method.
     """
     mod = importlib.import_module('methods.{}'.format(name))
-    return getattr(mod, 'factorize')
+    return getattr(mod, 'process')
 
 
 def data_source_linear_ramp(parameters):
@@ -291,12 +295,12 @@ def run_factorizations(parameters):
                 parameters[elapsed_key] = elapsed_time + (parameters[elapsed_key] if elapsed_key in parameters else 0)
 
             for method_name in methods:
-                print('Running factorizer "{}"'.format(method_name))
+                print('Running processing "{}"'.format(method_name))
                 start_time = time.perf_counter()
 
-                factorizer = get_factorizer(method_name)
+                process = get_processer(method_name)
 
-                save_data, save_method = factorizer(current_data, parameters)
+                save_data, save_method = process(current_data, parameters)
                 factor_indices = []
 
                 end_time = time.perf_counter()
@@ -304,14 +308,10 @@ def run_factorizations(parameters):
                 print('    Elapsed: {}'.format(elapsed_time))
                 elapsed_key = '__elapsed_time_{}'.format(method_name)
                 parameters[elapsed_key] = elapsed_time + (parameters[elapsed_key] if elapsed_key in parameters else 0)
-                if save_method == 'object':
-                    save_object(output_dir, method_name, slice_x, slice_y, save_data)
-                elif save_method == 'decomposition':
+                if save_method == 'decomposition':
                     save_decomposition(output_dir, method_name, slice_x, slice_y, *save_data)
                 else:
-                    print('WARNING: Save method "{}" unknown. Using decomposition'.format(save_method))
-                    save_method = 'decomposition'
-                    save_decomposition(output_dir, method_name, slice_x, slice_y, *save_data)
+                    save_object(output_dir, method_name, slice_x, slice_y, save_data)
 
                 parameters['__save_method_{}'.format(method_name)] = save_method
 
