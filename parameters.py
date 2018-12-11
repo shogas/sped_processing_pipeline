@@ -63,7 +63,7 @@ def parameters_parse(filename):
 
     now = datetime.now()
     parameters['__date'] = now.isoformat()  # TODO(simonhog): Ensure readable, add timezone. pytz library?
-    parameters['__date_string'] = '{0:%Y}{0:%m}{0:%d}_{0:%H}_{0:%M}_{0:%S}_{0:%f}'.format(now)  # TODO(simonhog): Ensure readable, add timezone. pytz library?
+    parameters['__date_string'] = now.strftime('%Y%m%d_%H_%M_%S_%f')
     parameters['__parameter_file'] = os.path.abspath(filename)
     if parameters.get('development', 'false').lower() != 'true':
         parameters['__code_git_hash'] = git_current_commit_hash()
