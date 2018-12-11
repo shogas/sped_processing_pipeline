@@ -1,31 +1,46 @@
 import numpy as np
 from pyxem import ElectronDiffraction
 
-from utils.decomposition import decompose_nmf
 """ Factorizes the given diffraction patterns using the NMF implementation from
 pyxem, returning factors and loadings. """
 
-def factorize(diffraction_patterns, parameters):
-    dps = ElectronDiffraction(diffraction_patterns)
+def process(diffraction_patterns, parameters):
+    """Factorize diffraction patterns into the product of factors and loadings.
 
-    # dps.decomposition(True, algorithm='svd')
-    # dps.plot_explained_variance_ratio()
-    # TODO(simonhog): Automate getting number of factors
-    component_count = int(parameters['phase_count'])
+    Paramters
+    ---------
+    diffraction_patterns : numpy.ndarray
+        4D numpy array containing the diffraction patterns
+    parameters : dict
+        Dictionary of parameters:
+        'phase_count' : int
+            Number of components to factorize into
 
-    decompose_nmf(dps, component_count)
+    Returns
+    -------
+    results : (factors, loadings)
+        Tuple of factors and corresponding loadings
+    result_type : string
+        decomposition
+    """
+    # Load data as a pyxem.ElectronDiffraction object
+    dp = ElectronDiffraction(diffraction_patterns)
 
-    # dps.plot_decomposition_results()
-    # plt.show()
-    factors = dps.get_decomposition_factors().data
-    loadings = dps.get_decomposition_loadings().data
+    # Do the actual factorization using decomposition function from pyxem
+    # (which uses HyperSpy and sklearn)
+    dp.decomposition(
+            normalize_poissonian_noise=True,
+            algorithm='nmf',
+            output_dimension=parameters['phase_count'])
+
+    # Read the results
+    factors = dp.get_decomposition_factors().data
+    loadings = dp.get_decomposition_loadings().data
 
     # Factorization is only unique to a constant factor.
-    # Scale so that loadings has a maximum value of 1.
-    # TODO(simonhog): Is this required? The decomposition might already have this as a requirement to lift degeneracy. Check!
-    # This sum should be 1 at all positions, min(sum) == max(sum) == 1?
-    scale = loadings.sum(axis=0).max()
-    factors *= scale
-    loadings /= scale
-    return (factors, loadings), 'decomposition'
+    # Scale so that each loading has a maximum value of 1.
+    scaling = loadings.max(axis=(1, 2))  # Maximum in each component
+    factors *= scaling[:, np.newaxis, np.newaxis]
+    loadings *= np.reciprocal(scaling)[:, np.newaxis, np.newaxis]
 
+    return (factors, loadings), 'decomposition'
