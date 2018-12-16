@@ -38,7 +38,7 @@ class LogThread(threading.Thread):
                 try:
                     private_bytes = winstats.get_perf_data(
                         r'\Process(python{})\Private Bytes'.format(self.instance_number),
-                       fmts='long')[0]
+                       fmts='large')[0]
                     log_file.write('{}\t{}\n'.format(current_timestamp(), private_bytes))
                 except:
                     pass
