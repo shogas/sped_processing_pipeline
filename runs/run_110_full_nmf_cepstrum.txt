@@ -1,5 +1,5 @@
-shortname = 110_full_nmf
-methods = nmf
+shortname = 110_full_nmf_cepstrum
+methods = nmf_cepstrum
 
 !include run_110_full_base.txt
 
