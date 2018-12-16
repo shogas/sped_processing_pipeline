@@ -4,7 +4,7 @@ from pyxem import ElectronDiffraction
 from utils.preprocess import cepstrum_power
 from utils.decomposition import decompose_nmf
 
-def factorize(diffraction_patterns, parameters):
+def process(diffraction_patterns, parameters):
     phase_count = parameters['phase_count']
 
     dps = ElectronDiffraction(diffraction_patterns)
