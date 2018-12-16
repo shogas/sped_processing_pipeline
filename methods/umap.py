@@ -28,7 +28,7 @@ def process(diffraction_patterns, parameters):
             'umap_random_seed' : int
                 Random seed for reproducability. Optional.
             'umap_cluster_size' : int
-                Smalest grouping to consider a cluster.
+                Smallest grouping to consider a cluster.
                 See https://hdbscan.readthedocs.io/en/latest/parameter_selection.html#selecting-min-cluster-size
             'umap_cluster_min_samples' : int
                 How conservative the clustering is. Larger numbers assigns more
@@ -62,7 +62,7 @@ def process(diffraction_patterns, parameters):
     ).fit_transform(data_flat)
 
     # Save the results from UMAP, since this is the most expensive step.
-    # Clustering can then be done separately from this data to adjust parameters.
+    # Clustering can then be done separately to adjust parameters.
     save_embedding(embedding, parameters['output_dir_run'])
 
     # Cluster the low-dimensional data using HDBSCAN and the parameters
