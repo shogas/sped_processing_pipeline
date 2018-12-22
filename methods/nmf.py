@@ -1,25 +1,22 @@
 import numpy as np
 from pyxem import ElectronDiffraction
 
-""" Factorizes the given diffraction patterns using the NMF implementation from
-pyxem, returning factors and loadings. """
-
 def process(diffraction_patterns, parameters):
     """Factorize diffraction patterns into the product of factors and loadings.
 
-    Paramters
+    Parameters
     ---------
     diffraction_patterns : numpy.ndarray
-        4D numpy array containing the diffraction patterns
+        4D numpy array containing the diffraction patterns.
     parameters : dict
         Dictionary of parameters:
         'phase_count' : int
-            Number of components to factorize into
+            Number of components to factorize into.
 
     Returns
     -------
     results : (factors, loadings)
-        Tuple of factors and corresponding loadings
+        Tuple of factors and corresponding loadings.
     result_type : string
         decomposition
     """

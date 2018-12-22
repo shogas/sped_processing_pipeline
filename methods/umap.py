@@ -7,9 +7,9 @@ import hdbscan
 
 def process(diffraction_patterns, parameters):
     """Factorizes diffraction patterns by dimensionality reduction using UMAP
-    followed by clustering using UMAP.
+    followed by clustering using HDBSCAN.
 
-    Paramters
+    Parameters
     ---------
     diffraction_patterns : numpy.ndarray
         4D numpy array containing the diffraction patterns.
