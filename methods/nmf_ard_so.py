@@ -4,7 +4,7 @@ import numpy as np
 from utils.decomposition import decomposition_ard_so
 
 
-def factorize(diffraction_patterns, parameters):
+def process(diffraction_patterns, parameters):
     phase_count = parameters['phase_count']
     rep_count = parameters['rep_count']
     max_iterations = parameters['max_iterations']
@@ -15,6 +15,7 @@ def factorize(diffraction_patterns, parameters):
     decomposition_ard_so(s,
         n_components=phase_count,
         n_reps=rep_count,
+        threshold_merge=0.95,
         max_iterations=max_iterations,
         wo=orthogonality_constraint)
 
