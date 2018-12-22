@@ -5,8 +5,8 @@ data_source = sample_data
 
 
 # Splitting
-split_width = 200
-split_height = 300
+split_width = 180
+split_height = 150
 
 
 # Preprocessing

@@ -5,7 +5,7 @@ data_source = sample_data
 
 
 # Splitting
-split_width = 200
+split_width = 210
 split_height = 150
 
 

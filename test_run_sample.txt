@@ -1,7 +1,8 @@
 debug = true
 shortname = sample_test
 # methods = cepstrum_nmf, nmf, nmf_online, umap
-methods = template_match
+# methods = template_match
+methods = nmf_ard_so
 
 
 # Splitting
@@ -57,3 +58,10 @@ umap_min_dist = 0.1
 umap_n_components = 2
 umap_cluster_min_samples = 20
 umap_cluster_size = 500
+
+
+# ARD SO
+phase_count = 30
+rep_count = 2
+max_iterations = 1000
+orthogonality_constraint = 0.1

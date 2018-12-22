@@ -14,7 +14,7 @@ preprocess = affine_transform, gaussian_difference
 gaussian_sigma_min = 2
 gaussian_sigma_max = 8
 # From optimization:
-scale_x = 1.0058114881500018
-scale_y = 0.9879304925696586
-offset_x = -0.4580538278930447
-offset_y = 0.32006351671331673
+scale_x = 1.006
+scale_y = 0.988
+offset_x = -0.458
+offset_y = 0.320
