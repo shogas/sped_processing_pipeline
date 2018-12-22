@@ -24,6 +24,10 @@ from pyxem.generators.indexation_generator import IndexationGenerator
 from parameters import parameters_parse, parameters_save
 from common import result_image_file_info
 
+from utils.preprocess import preprocessor_affine_transform
+from utils.preprocess import preprocessor_gaussian_difference
+from utils.preprocess import preprocessor_hdome
+
 
 import warnings
 # Silence some future warnings and user warnings (float64 -> uint8)
@@ -179,57 +183,6 @@ def data_source_sample_data(parameters):
 
 def data_source_name(data_source):
     return 'data_source_' + data_source
-
-
-def preprocessor_affine_transform(data, parameters):
-    # TODO(simonhog): What is the cost of wrapping in ElectronDiffraction?
-    signal = pxm.ElectronDiffraction(data)
-    scale_x = parameters['scale_x']
-    scale_y = parameters['scale_y']
-    offset_x = parameters['offset_x']
-    offset_y = parameters['offset_y']
-    signal.apply_affine_transformation(np.array([
-            [scale_x, 0, offset_x],
-            [0, scale_y, offset_y],
-            [0, 0, 1]
-        ]))
-    return signal.data
-
-
-def preprocessor_gaussian_difference(data, parameters):
-    # TODO(simonhog): Does this copy the data? Hopefully not
-    signal = pxm.ElectronDiffraction(data)
-    sig_width = signal.axes_manager.signal_shape[0]
-    sig_height = signal.axes_manager.signal_shape[1]
-
-    # signal.center_direct_beam(
-            # radius_start=parameters['center_radius_start'],
-            # radius_finish=parameters['center_radius_finish'],
-            # square_width=parameters['center_square'],
-            # show_progressbar=False)
-
-    signal = signal.remove_background(
-            'gaussian_difference',
-            sigma_min=parameters['gaussian_sigma_min'],
-            sigma_max=parameters['gaussian_sigma_max'])
-    signal.data /= signal.data.max()
-
-    # TODO(simonhog): Could cache beam mask between calls
-    # sig_center = (sig_width - 1) / 2, (sig_height - 1) / 2
-    # direct_beam_mask = circular_mask(shape=(sig_width, sig_height),
-                                     # radius=parameters['direct_beam_mask_radius'],
-                                     # center=sig_center)
-    # np.invert(direct_beam_mask, out=direct_beam_mask)
-    # signal.data *= direct_beam_mask
-
-    return signal.data
-
-
-def preprocessor_hdome(data, parameters):
-    signal = pxm.ElectronDiffraction(data)
-    signal = signal.remove_background('h-dome', h=parameters['hdome_h'])
-    signal.data *= 1/signal.data.max()
-    return signal.data
 
 
 def preprocessor_name(preprocessor):
