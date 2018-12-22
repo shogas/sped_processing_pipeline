@@ -75,7 +75,7 @@ def decomposition_ard_so(
 
         # Iteration
         for itr in range(max_iterations):
-            print('  Iteration ' + str(itr))
+            if itr % 10 == 0: print('  Iteration ' + str(itr))
             # Update S
             XC = X.T @ C
             C_squared = C.T @ C
@@ -108,7 +108,7 @@ def decomposition_ard_so(
                 m = i < j
                 i = i[m]
                 j = j[m]
-                for n in range(len(i)):
+                for n in range(len(i)):  # TODO(simonhog): This does not actually shrink the matrices, and empty components will still be zeroed every iteration
                     S[:, j[n]] = 1 / np.sqrt(n_X_channels)
                     C[:, i[n]] = np.sum(C[:, np.r_[i[n], j[n]]], axis=1)
                     C[:, j[n]] = 0
@@ -121,7 +121,6 @@ def decomposition_ard_so(
 
             # Update variance of additive Gaussian noise)
             X_est = C @ S.T
-            print('    X_est shape: {}'.format(X_est.shape))
             asdf = (X - X_est)**2
             variance = np.mean(asdf)
 
@@ -130,6 +129,7 @@ def decomposition_ard_so(
             obj[itr] += (L ** (-1)).T @ (np.sum(C, axis=0) + beta).T + (n_X_xy + alpha + 1) * np.sum(np.log(L), axis=0) + const
 
             # TODO(simonhog): Original implementation uses & (binary and) instead of and?
+            if itr > 1 and itr % 10 == 0: print('    convergence', np.abs(obj[itr - 1] - obj[itr]))
             if itr > 1 and np.abs(obj[itr - 1] - obj[itr]) < 1e-10:  # TODO(simonhog): Adjustable convergence parameter?
                 obj = obj[0:itr]
                 lambdas = lambdas[0:itr, :].copy()
@@ -166,3 +166,7 @@ def decomposition_ard_so(
     s.learning_results.decomposition_algorithm = 'ARD_SO_NMF'
     s.learning_results.output_dimensions = n_comp_best
     print('Found {} components'.format(n_comp_best))
+    for i, factor in enumerate(s.learning_results.factors):
+        print('Factor {} max ', np.max(factor))
+    for i, loading in enumerate(s.learning_results.loadings):
+        print('Loading {} max ', np.max(loading))
