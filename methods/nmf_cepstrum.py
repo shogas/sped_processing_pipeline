@@ -13,6 +13,12 @@ def process(diffraction_patterns, parameters):
 
     factors = dps_cepstrum.get_decomposition_factors().data
     loadings = dps_cepstrum.get_decomposition_loadings().data
-    # TODO(simonhog): Return factors from highest index with highest loading to get real-space values
+
+    # Factorization is only unique to a constant factor.
+    # Scale so that each loading has a maximum value of 1.
+    scaling = loadings.max(axis=(1, 2))  # Maximum in each component
+    factors *= scaling[:, np.newaxis, np.newaxis]
+    loadings *= np.reciprocal(scaling)[:, np.newaxis, np.newaxis]
+
     return (factors, loadings), 'decomposition'
 
